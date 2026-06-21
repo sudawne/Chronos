@@ -80,9 +80,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/meetings/{meeting}/latest-checkin', [MeetingController::class, 'latestCheckin'])->name('api.latest_checkin');
     Route::post('/api/meetings/process-qr', [MeetingController::class, 'processQrScan'])->name('api.process_qr');
     Route::get('/api/global-search', [MeetingController::class, 'globalSearch']);
+    // API lấy danh sách cổng đang hoạt động và API gửi nhịp tim
+    Route::get('/api/meetings/{meeting}/active-gates', [MeetingController::class, 'getActiveGates']);
+    Route::post('/api/meetings/{meeting}/gate-heartbeat', [MeetingController::class, 'gateHeartbeat']);
 
     // Admin: Quản lý User (CRUD)
-    // Admin: Quản lý Phân quyền (Hybrid: User + Role Matrix)
     Route::prefix('admin')->name('admin.')->group(function () {
         // 1. Quản lý user & cấp quyền riêng lẻ
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');

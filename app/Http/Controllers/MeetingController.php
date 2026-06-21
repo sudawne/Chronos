@@ -465,13 +465,46 @@ class MeetingController extends Controller
             'elements' => 'required|array'
         ]);
 
-        // Gộp với cấu hình cũ nếu cần, hoặc ghi đè hoàn toàn
         $config = [
-            'bg_image' => $payload['bg_image'],
             'bg_color' => $payload['bg_color'] ?? '#0f172a',
-            'elements' => $payload['elements'] // Mảng chứa tọa độ (x,y), fontSize, color...
+            'elements' => $payload['elements']
         ];
 
+        // 1. TÁCH BASE64 THÀNH FILE ẢNH NỀN (BACKGROUND)
+        if (!empty($payload['bg_image']) && str_starts_with($payload['bg_image'], 'data:image')) {
+            $image_parts = explode(";base64,", $payload['bg_image']);
+            $image_base64 = base64_decode($image_parts[1]);
+            
+            $fileName = 'bg_' . time() . '.png';
+            $path = "meetings/{$meeting->id}/welcome/{$fileName}";
+            
+            \Illuminate\Support\Facades\Storage::disk('public')->put($path, $image_base64);
+            $config['bg_image'] = '/storage/' . $path; // Chỉ lưu đường dẫn ngắn vào DB
+        } else {
+            $config['bg_image'] = $payload['bg_image']; // Giữ nguyên link ảnh cũ nếu không sửa
+        }
+
+        // 2. TÁCH BASE64 THÀNH FILE ẢNH CHO CÁC LOGO/HÌNH ẢNH NHỎ
+        foreach ($config['elements'] as &$el) {
+            if (isset($el['type']) && $el['type'] === 'image' && isset($el['src'])) {
+                
+                // Nếu phát hiện là chuỗi Base64 mới upload lên
+                if (str_starts_with($el['src'], 'data:image')) {
+                    $image_parts = explode(";base64,", $el['src']);
+                    $image_base64 = base64_decode($image_parts[1]);
+                    
+                    $fileName = 'element_' . uniqid() . '.png';
+                    $path = "meetings/{$meeting->id}/welcome/{$fileName}";
+                    
+                    \Illuminate\Support\Facades\Storage::disk('public')->put($path, $image_base64);
+                    
+                    // Thay thế chuỗi khổng lồ bằng đường dẫn file
+                    $el['src'] = '/storage/' . $path; 
+                }
+            }
+        }
+
+        // 3. LƯU VÀO DATABASE (Lúc này json_encode rất nhẹ và an toàn)
         $meeting->update([
             'welcome_config' => json_encode($config)
         ]);
