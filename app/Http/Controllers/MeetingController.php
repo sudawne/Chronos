@@ -13,6 +13,7 @@ use App\Mail\GuestTicketMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Exception;
 
 class MeetingController extends Controller
@@ -262,9 +263,40 @@ class MeetingController extends Controller
 
         return redirect()->back()->with('success', 'Đang nạp model AI và khởi động Camera... Vui lòng đợi cửa sổ Terminal bật lên!');
     }
-    public function onlineCheckin(Meeting $meeting)
+    public function onlineCheckin(Request $request, Meeting $meeting)
     {
-        return view('meetings.online', compact('meeting'));
+        $gateName = $request->query('gate', 'Cổng Phụ'); // Mặc định là Cổng Phụ nếu không truyền
+        return view('meetings.online', compact('meeting', 'gateName'));
+    }
+    public function gateHeartbeat(Request $request, Meeting $meeting)
+    {
+        $gateName = $request->input('gate_name');
+        $cacheKey = 'meeting_' . $meeting->id . '_active_gates';
+        
+        $gates = Cache::get($cacheKey, []);
+        // Cập nhật thời gian sống của cổng này (Timestamp)
+        $gates[$gateName] = time(); 
+        
+        Cache::put($cacheKey, $gates, 60); // Giữ mảng cache trong 60s
+        
+        return response()->json(['status' => 'ok']);
+    }
+
+    // THÊM HÀM 2: Trả về danh sách cổng cho màn hình Quản lý
+    public function getActiveGates(Meeting $meeting)
+    {
+        $cacheKey = 'meeting_' . $meeting->id . '_active_gates';
+        $gates = Cache::get($cacheKey, []);
+        $activeGates = [];
+
+        foreach ($gates as $name => $timestamp) {
+            // Nếu nhịp tim cuối cùng cách đây dưới 8 giây -> Cổng đang MỞ
+            if (time() - $timestamp <= 8) {
+                $activeGates[] = $name;
+            }
+        }
+
+        return response()->json(['active_gates' => $activeGates]);
     }
     public function startApiServer()
     {
@@ -515,5 +547,89 @@ class MeetingController extends Controller
     public function game(Meeting $meeting)
     {
         return view('meetings.game', compact('meeting'));
+    }
+
+    //Xử lý design template
+    // 1. API Lấy danh sách Template
+    public function getTemplates()
+    {
+        $templates = \App\Models\WelcomeTemplate::orderBy('created_at', 'desc')->get();
+        return response()->json($templates);
+    }
+
+    // 2. API Lưu bản thiết kế thành Template mới
+    public function saveTemplate(Request $request)
+    {
+        $payload = $request->validate([
+            'name' => 'required|string|max:255',
+            'config' => 'required|array'
+        ]);
+
+        $configData = $payload['config'];
+
+        // Tách Base64 thành file ảnh lưu vào ổ cứng (Tránh lỗi sập Database)
+        if (!empty($configData['bg_image']) && str_starts_with($configData['bg_image'], 'data:image')) {
+            $image_parts = explode(";base64,", $configData['bg_image']);
+            $image_base64 = base64_decode($image_parts[1]);
+            
+            $fileName = 'tpl_bg_' . time() . '.png';
+            $path = "templates/{$fileName}"; // Lưu vào thư mục public/storage/templates
+            
+            \Illuminate\Support\Facades\Storage::disk('public')->put($path, $image_base64);
+            $configData['bg_image'] = '/storage/' . $path;
+        }
+
+        foreach ($configData['elements'] as &$el) {
+            if (isset($el['type']) && $el['type'] === 'image' && isset($el['src']) && str_starts_with($el['src'], 'data:image')) {
+                $image_parts = explode(";base64,", $el['src']);
+                $image_base64 = base64_decode($image_parts[1]);
+                $fileName = 'tpl_element_' . uniqid() . '.png';
+                $path = "templates/{$fileName}";
+                
+                \Illuminate\Support\Facades\Storage::disk('public')->put($path, $image_base64);
+                $el['src'] = '/storage/' . $path; 
+            }
+        }
+
+        // Lưu vào CSDL
+        $template = \App\Models\WelcomeTemplate::create([
+            'name' => $payload['name'],
+            'config' => json_encode($configData)
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Lưu mẫu thành công!']);
+    }
+    
+    public function deleteTemplate($id)
+    {
+        $template = \App\Models\WelcomeTemplate::find($id);
+        
+        if (!$template) {
+            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy mẫu!'], 404);
+        }
+
+        // 1. Dọn dẹp rác: Xóa file ảnh nền và logo của mẫu này trong ổ cứng
+        $config = json_decode($template->config, true);
+        
+        // Kiểm tra và xóa ảnh nền (nếu có)
+        if (!empty($config['bg_image']) && str_starts_with($config['bg_image'], '/storage/templates/')) {
+            $path = str_replace('/storage/', '', $config['bg_image']);
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+        }
+
+        // Kiểm tra và xóa ảnh logo con (nếu có)
+        if (!empty($config['elements'])) {
+            foreach ($config['elements'] as $el) {
+                if (isset($el['type']) && $el['type'] === 'image' && isset($el['src']) && str_starts_with($el['src'], '/storage/templates/')) {
+                    $path = str_replace('/storage/', '', $el['src']);
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+                }
+            }
+        }
+
+        // 2. Xóa bản ghi trong Database
+        $template->delete();
+
+        return response()->json(['status' => 'success', 'message' => 'Xóa mẫu thành công!']);
     }
 }

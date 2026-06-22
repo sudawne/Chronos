@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; overflow: hidden; }
         /* Lật ngược video để soi gương tự nhiên */
@@ -19,7 +21,7 @@
     <div class="mb-4 text-center z-10">
         <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-500/20 text-indigo-400 rounded-full text-sm font-bold border border-indigo-500/30 mb-2">
             <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-            STATION: CỔNG PHỤ ĐIỂM DANH
+            STATION: <span class="uppercase">{{ $gateName }}</span>
         </div>
         <h1 class="text-2xl font-extrabold text-white">{{ $meeting->title }}</h1>
     </div>
@@ -54,7 +56,6 @@
             navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: false })
                 .then(function (stream) {
                     video.srcObject = stream;
-                    // Chỉnh size canvas overlay khớp với video thực tế
                     video.onloadedmetadata = () => {
                         overlayCanvas.width = video.videoWidth;
                         overlayCanvas.height = video.videoHeight;
@@ -65,6 +66,9 @@
                 });
         }
 
+        // ==========================================
+        // 1. LOGIC QUÉT KHUÔN MẶT (GIỮ NGUYÊN)
+        // ==========================================
         function captureAndSendFrame() {
             if (!video.videoWidth || isProcessing) return;
 
@@ -75,7 +79,6 @@
 
             const base64Image = captureCanvas.toDataURL('image/jpeg', 0.8);
 
-            // Dùng FormData để gửi ảnh (Tương thích với API FastAPI)
             let formData = new FormData();
             formData.append('image_base64', base64Image);
             formData.append('meeting_id', {{ $meeting->id }});
@@ -86,7 +89,6 @@
             })
             .then(res => res.json())
             .then(data => {
-                // Xóa các khung vẽ cũ
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
                 if (data.status === 'success' && data.detections) {
@@ -95,14 +97,12 @@
                         let color = det.color;
                         let name = det.name;
 
-                        // Vẽ khung nhận diện quanh mặt
                         overlayCtx.beginPath();
                         overlayCtx.lineWidth = 4;
                         overlayCtx.strokeStyle = color;
                         overlayCtx.roundRect(x1, y1, x2 - x1, y2 - y1, 10);
                         overlayCtx.stroke();
 
-                        // Nếu là khách thật (Không phải Khach La), vẽ tên lên
                         if (name !== "Khach La" && name !== "Unknown") {
                             overlayCtx.fillStyle = color;
                             overlayCtx.fillRect(x1, y1 - 40, x2 - x1, 40);
@@ -110,7 +110,6 @@
                             overlayCtx.font = "bold 20px 'Plus Jakarta Sans'";
                             overlayCtx.fillText(name, x1 + 10, y1 - 12);
 
-                            // Bật Toast hiển thị phía dưới
                             showToast(name);
                         }
                     });
@@ -122,10 +121,8 @@
             });
         }
 
-        // Quét liên tục mỗi 1.2 giây cho cổng phụ
         setInterval(captureAndSendFrame, 1200);
 
-        // Hiển thị thông báo khi có người qua cổng
         function showToast(name) {
             toastName.innerText = name + " - OK";
             toast.classList.remove('opacity-0', 'translate-y-10');
@@ -135,6 +132,30 @@
                 toast.classList.add('opacity-0', 'translate-y-10');
             }, 2500);
         }
+
+        // ==========================================
+        // 2. [ĐÃ THÊM] LOGIC GỬI NHỊP TIM (HEARTBEAT)
+        // ==========================================
+        function sendHeartbeat() {
+            let formData = new FormData();
+            formData.append('gate_name', '{{ $gateName }}');
+            
+            fetch('/api/meetings/{{ $meeting->id }}/gate-heartbeat', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: formData
+            }).catch(e => {
+                // Lỗi mạng ẩn đi để không làm phiền luồng camera
+                console.log("Heartbeat error", e);
+            }); 
+        }
+
+        // Bắn nhịp tim ngay khi mở tab và lặp lại mỗi 4 giây
+        sendHeartbeat();
+        setInterval(sendHeartbeat, 4000); 
+
     </script>
 </body>
 </html>

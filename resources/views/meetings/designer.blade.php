@@ -69,6 +69,9 @@
             <span id="zoom-level" class="text-xs font-bold w-10 text-center">100%</span>
             <button onclick="zoomIn()" class="p-1.5 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white"><span class="material-symbols-outlined">zoom_in</span></button>
             <div class="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-2"></div>
+            <button onclick="promptSaveTemplate()" class="flex items-center gap-2 px-4 py-1.5 bg-emerald-100 hover:bg-emerald-600 text-emerald-700 hover:text-white text-sm font-bold rounded-lg shadow-sm transition-all border border-emerald-200">
+                <span class="material-symbols-outlined text-[18px]">auto_awesome_mosaic</span> Lưu làm Mẫu
+            </button>
             <button onclick="saveDesign()" id="btn-save" class="flex items-center gap-2 px-5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg shadow-md transition-all">
                 <span class="material-symbols-outlined text-[18px]">cloud_upload</span> Lưu thiết kế
             </button>
@@ -82,15 +85,8 @@
                 <h2 class="text-xs font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
                     <span class="material-symbols-outlined text-[16px]">auto_awesome_mosaic</span> Mẫu thiết kế sẵn
                 </h2>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="applyTemplate('dai_hoi')" class="relative h-16 rounded-xl border-2 border-transparent hover:border-amber-500 overflow-hidden group transition-all">
-                        <div class="absolute inset-0 bg-gradient-to-br from-red-700 to-red-900"></div>
-                        <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-yellow-300 drop-shadow-md">Đại Hội</span>
-                    </button>
-                    <button onclick="applyTemplate('hoi_nghi')" class="relative h-16 rounded-xl border-2 border-transparent hover:border-blue-500 overflow-hidden group transition-all">
-                        <div class="absolute inset-0 bg-gradient-to-br from-slate-900 to-blue-900"></div>
-                        <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white drop-shadow-md">Công Nghệ</span>
-                    </button>
+                <div id="template-list" class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                    <div class="col-span-2 text-center text-xs text-slate-500 py-4 animate-pulse">Đang tải thư viện mẫu...</div>
                 </div>
             </div>
 
@@ -203,6 +199,22 @@
                         </select>
                     </div>
                 </div>
+                <div id="prop-avatar-panel" class="hidden space-y-5">
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <label class="text-[13px] font-semibold block mb-1">Kích cỡ ảnh</label>
+                            <input type="number" id="prop-avatar-size" ...>
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-[13px] font-semibold block mb-1">Độ dày viền</label>
+                            <input type="number" id="prop-avatar-border-width" ...>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[13px] font-semibold block mb-1">Màu viền ảnh</label>
+                        <input type="color" id="prop-avatar-border-color" ...>
+                    </div>
+                </div>
 
                 <div id="prop-action-panel" class="hidden mt-8 pt-5 border-t border-slate-200 dark:border-slate-800">
                     <button onclick="deleteSelected()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg transition-colors border border-rose-200">
@@ -272,70 +284,6 @@
             selectElement(el);
         }
 
-        // --- TEMPLATE ---
-        const templates = {
-            'dai_hoi': {
-                bg_color: '#a80000',
-                elements: [
-                    { id: 'el_avatar', type: 'avatar', x: 80, y: 120, width: 280, borderWidth: 8, borderColor: '#fcd34d' },
-                    { id: 'el_welcome', type: 'text', content: 'CHÀO MỪNG\nĐồng chí', x: 450, y: 150, color: '#fcd34d', size: 36, fontWeight: '800' },
-                    { id: 'el_name', type: 'text', content: 'TRỊNH HÙNG SƠN', x: 450, y: 250, color: '#ffffff', size: 54, fontWeight: '800' },
-                    { id: 'el_position', type: 'text', content: 'Đại biểu tham dự Đại hội', x: 450, y: 350, color: '#fef3c7', size: 24, fontWeight: '600' },
-                    { id: 'el_seat', type: 'text', content: 'Số ghế ngồi: 04', x: 130, y: 430, color: '#ffffff', size: 22, fontWeight: '800' }
-                ]
-            },
-            'hoi_nghi': {
-                bg_color: '#0f172a',
-                elements: [
-                    { id: 'el_avatar', type: 'avatar', x: 600, y: 140, width: 250, borderWidth: 4, borderColor: '#3b82f6' },
-                    { id: 'el_welcome', type: 'text', content: 'WELCOME', x: 100, y: 160, color: '#60a5fa', size: 28, fontWeight: '600' },
-                    { id: 'el_name', type: 'text', content: 'Alex Ferguson', x: 100, y: 210, color: '#ffffff', size: 64, fontWeight: '800' },
-                    { id: 'el_position', type: 'text', content: 'Chief Technology Officer', x: 100, y: 310, color: '#94a3b8', size: 24, fontWeight: '400' },
-                    { id: 'el_seat', type: 'text', content: 'VIP SEAT: A-01', x: 100, y: 380, color: '#10b981', size: 20, fontWeight: '800' }
-                ]
-            }
-        };
-
-        function applyTemplate(theme) {
-            if(!confirm('Áp dụng Template sẽ xóa thiết kế hiện tại. Tiếp tục?')) return;
-            const data = templates[theme];
-            
-            document.getElementById('bgColor').value = data.bg_color;
-            artboard.style.backgroundColor = data.bg_color;
-            artboard.style.backgroundImage = 'none';
-            document.getElementById('bgImage').value = '';
-            document.querySelectorAll('.draggable').forEach(el => el.remove());
-
-            data.elements.forEach(elData => {
-                const el = document.createElement('div');
-                el.id = elData.id;
-                el.className = 'draggable';
-                el.dataset.type = elData.type;
-                el.style.left = elData.x + 'px';
-                el.style.top = elData.y + 'px';
-
-                if(elData.type === 'text') {
-                    el.style.color = elData.color;
-                    el.style.fontSize = elData.size + 'px';
-                    el.style.fontWeight = elData.fontWeight;
-                    el.innerText = elData.content;
-                } else if(elData.type === 'avatar') {
-                    el.style.borderRadius = '50%';
-                    el.style.overflow = 'hidden';
-                    el.style.border = `${elData.borderWidth}px solid ${elData.borderColor}`;
-                    el.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
-                    const img = document.createElement('img');
-                    img.src = 'https://ui-avatars.com/api/?name=Avatar&size=300';
-                    img.style.width = elData.width + 'px';
-                    img.style.height = elData.width + 'px';
-                    img.style.objectFit = 'cover';
-                    el.appendChild(img);
-                }
-                attachEvents(el);
-                artboard.appendChild(el);
-            });
-        }
-
         // --- CÁC HÀM CƠ BẢN ---
         function addDynamicElement(id, defaultText, defaultSize, defaultColor) {
             if (document.getElementById(id)) { selectElement(document.getElementById(id)); return; }
@@ -398,11 +346,22 @@
             
             if (el.dataset.type === 'text') {
                 document.getElementById('prop-text-panel').classList.remove('hidden');
+                document.getElementById('prop-avatar-panel').classList.add('hidden');
                 document.getElementById('prop-text').value = el.innerText;
                 document.getElementById('prop-color').value = rgbToHex(window.getComputedStyle(el).color);
                 document.getElementById('prop-size').value = parseInt(window.getComputedStyle(el).fontSize);
                 document.getElementById('prop-weight').value = window.getComputedStyle(el).fontWeight;
                 document.getElementById('prop-text').disabled = (el.id === 'el_name' || el.id === 'el_position' || el.id === 'el_seat');
+            }
+            else if (el.dataset.type === 'avatar') {
+                // 1. Hiện bảng Avatar, giấu bảng Text
+                document.getElementById('prop-avatar-panel').classList.remove('hidden');
+                document.getElementById('prop-text-panel').classList.add('hidden');
+                
+                // 2. Hút dữ liệu hiện tại gán vào input
+                document.getElementById('prop-avatar-size').value = parseInt(window.getComputedStyle(el).width) || 200;
+                document.getElementById('prop-avatar-border-width').value = parseInt(window.getComputedStyle(el).borderWidth) || 0;
+                document.getElementById('prop-avatar-border-color').value = rgbToHex(window.getComputedStyle(el).borderColor);
             }
         }
         function deselectElement() {
@@ -420,6 +379,27 @@
         document.getElementById('prop-size').addEventListener('input', (e) => { if(selectedElement) selectedElement.style.fontSize = `${e.target.value}px`; });
         document.getElementById('prop-weight').addEventListener('change', (e) => { if(selectedElement) selectedElement.style.fontWeight = e.target.value; });
 
+        // --- SỰ KIỆN ĐIỀU CHỈNH AVATAR ---
+        document.getElementById('prop-avatar-size').addEventListener('input', (e) => { 
+            if(selectedElement && selectedElement.dataset.type === 'avatar') {
+                const size = `${e.target.value}px`;
+                selectedElement.style.width = size;
+                selectedElement.style.height = size;
+            }
+        });
+        
+        document.getElementById('prop-avatar-border-width').addEventListener('input', (e) => { 
+            if(selectedElement && selectedElement.dataset.type === 'avatar') {
+                selectedElement.style.borderWidth = `${e.target.value}px`;
+            }
+        });
+        
+        document.getElementById('prop-avatar-border-color').addEventListener('input', (e) => { 
+            if(selectedElement && selectedElement.dataset.type === 'avatar') {
+                selectedElement.style.borderColor = e.target.value;
+            }
+        });
+        
         function rgbToHex(rgb) {
             let match = rgb.match(/\d+/g); if(!match) return "#ffffff";
             let [r, g, b] = match; return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
@@ -453,6 +433,236 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
                 body: JSON.stringify({ bg_color: document.getElementById('bgColor').value, bg_image: document.getElementById('bgImage').value, elements: elementsData })
+            }).then(res => res.json()).then(data => {
+                btnSave.innerHTML = `Đã lưu xong!`; btnSave.classList.replace('bg-indigo-600', 'bg-emerald-500');
+                setTimeout(() => { btnSave.innerHTML = `Lưu thiết kế`; btnSave.classList.replace('bg-emerald-500', 'bg-indigo-600'); }, 2000);
+            });
+        }
+
+        //Lưu template
+        let globalTemplates = [];
+
+        // 1. Tự động tải danh sách Mẫu từ Database khi vừa vào trang
+        document.addEventListener('DOMContentLoaded', loadGlobalTemplates);
+
+        function loadGlobalTemplates() {
+            fetch('{{ route('api.get_templates') }}')
+            .then(res => res.json())
+            .then(data => {
+                globalTemplates = data;
+                renderTemplates();
+            });
+        }
+
+        // 2. Vẽ danh sách nút Mẫu ra màn hình (ĐÃ CẬP NHẬT GIAO DIỆN NÚT XÓA)
+        // 2. Vẽ danh sách nút Mẫu ra màn hình (HIỂN THỊ XEM TRƯỚC TRỰC QUAN)
+        function renderTemplates() {
+            const container = document.getElementById('template-list');
+            if (globalTemplates.length === 0) {
+                container.innerHTML = `<div class="col-span-2 text-center text-xs text-slate-500 py-4">Chưa có mẫu nào. Hãy thiết kế và lưu lại!</div>`;
+                return;
+            }
+
+            let html = '';
+            globalTemplates.forEach(tpl => {
+                // Đọc dữ liệu thiết kế từ Database
+                const data = typeof tpl.config === 'string' ? JSON.parse(tpl.config) : tpl.config;
+                
+                // --- 1. Phục dựng Ảnh nền / Màu nền ---
+                let bgStyle = '';
+                if (data.bg_image) {
+                    bgStyle = `background-image: url('${data.bg_image}'); background-size: cover; background-position: center;`;
+                } else {
+                    bgStyle = `background-color: ${data.bg_color || '#0f172a'};`;
+                }
+
+                // --- 2. Phục dựng các thẻ chữ, hình ảnh, khung avatar ---
+                let innerHtml = '';
+                if (data.elements) {
+                    data.elements.forEach(el => {
+                        if (el.type === 'text') {
+                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color || '#ffffff'}; font-size: ${el.size}px; font-weight: ${el.fontWeight || 'normal'}; white-space: nowrap; text-shadow: 2px 4px 10px rgba(0,0,0,0.5);">${el.content || el.text || ''}</div>`;
+                        } else if (el.type === 'image') {
+                            innerHtml += `<img src="${el.src}" style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; height: auto;">`;
+                        } else if (el.type === 'avatar') {
+                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width || 200}px; height: ${el.width || 200}px; border-radius: 50%; border: ${el.borderWidth || 0}px solid ${el.borderColor || 'transparent'}; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);"></div>`;
+                        }
+                    });
+                }
+
+                // --- 3. Gói tất cả vào một Mini-Artboard và thu nhỏ bằng CSS Scale ---
+                html += `
+                    <div class="relative rounded-xl border border-slate-300 hover:border-indigo-500 overflow-hidden group transition-all shadow-sm bg-slate-100" style="width: 120px; height: 67.5px;">
+                        
+                        <div class="absolute top-0 left-0 w-[960px] h-[540px] pointer-events-none" style="transform: scale(0.125); transform-origin: top left; ${bgStyle}">
+                            ${innerHtml}
+                        </div>
+                        
+                        <button onclick="applyTemplate(${tpl.id})" class="absolute inset-0 w-full h-full bg-slate-900/30 hover:bg-slate-900/10 transition-colors focus:outline-none flex items-end justify-center pb-1 z-10">
+                            <span class="text-[9px] font-bold text-white px-2 py-0.5 bg-black/60 rounded backdrop-blur-sm truncate max-w-[95%] shadow-sm leading-tight">${tpl.name}</span>
+                        </button>
+                        
+                        <button onclick="deleteTemplate(${tpl.id})" class="absolute top-1 right-1 w-5 h-5 bg-white/90 hover:bg-rose-500 rounded flex items-center justify-center text-rose-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all z-20 shadow-sm" title="Xóa mẫu này">
+                            <span class="material-symbols-outlined text-[13px]">delete</span>
+                        </button>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // THÊM HÀM MỚI: XỬ LÝ XÓA MẪU
+        function deleteTemplate(id) {
+            if(!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn mẫu thiết kế này không?')) return;
+
+            fetch(`/api/welcome-templates/${id}`, {
+                method: 'DELETE',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    loadGlobalTemplates(); // Xóa xong tự động load lại danh sách
+                } else {
+                    alert('Lỗi: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Có lỗi xảy ra khi xóa mẫu!');
+            });
+        }
+
+        // 3. Hàm Áp dụng Mẫu
+        function applyTemplate(templateId) {
+            if(!confirm('Áp dụng Template sẽ ghi đè thiết kế hiện tại. Tiếp tục?')) return;
+            
+            const tpl = globalTemplates.find(t => t.id === templateId);
+            if (!tpl) return;
+
+            const data = typeof tpl.config === 'string' ? JSON.parse(tpl.config) : tpl.config;
+            
+            document.getElementById('bgColor').value = data.bg_color || '#0f172a';
+            artboard.style.backgroundColor = data.bg_color || '#0f172a';
+            
+            if (data.bg_image) {
+                artboard.style.backgroundImage = `url('${data.bg_image}')`;
+                document.getElementById('bgImage').value = data.bg_image;
+            } else {
+                artboard.style.backgroundImage = 'none';
+                document.getElementById('bgImage').value = '';
+            }
+
+            document.querySelectorAll('.draggable').forEach(el => el.remove());
+
+            if (data.elements) {
+                data.elements.forEach(elData => {
+                    const el = document.createElement('div');
+                    el.id = elData.id;
+                    el.className = 'draggable';
+                    el.dataset.type = elData.type;
+                    el.style.left = elData.x + 'px';
+                    el.style.top = elData.y + 'px';
+
+                    if(elData.type === 'text') {
+                        el.style.color = elData.color;
+                        el.style.fontSize = elData.size + 'px';
+                        el.style.fontWeight = elData.fontWeight;
+                        el.innerText = elData.content;
+                    } else if(elData.type === 'image') {
+                        const img = document.createElement('img');
+                        img.src = elData.src;
+                        img.style.width = elData.width + 'px';
+                        el.appendChild(img);
+                    } else if(elData.type === 'avatar') {
+                        el.style.borderRadius = '50%';
+                        el.style.overflow = 'hidden';
+                        el.style.border = `${elData.borderWidth}px solid ${elData.borderColor}`;
+                        el.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+                        const img = document.createElement('img');
+                        img.src = 'https://ui-avatars.com/api/?name=Avatar&size=300';
+                        img.style.width = elData.width + 'px';
+                        img.style.height = elData.width + 'px';
+                        img.style.objectFit = 'cover';
+                        el.appendChild(img);
+                    }
+                    attachEvents(el);
+                    artboard.appendChild(el);
+                });
+            }
+        }
+
+        // 4. Lấy dữ liệu trên khung vẽ gom thành Object
+        function getCanvasData() {
+            const elementsData = [];
+            document.querySelectorAll('.draggable').forEach(el => {
+                const type = el.dataset.type || 'text';
+                let data = { id: el.id, type: type, x: el.offsetLeft, y: el.offsetTop };
+                
+                if (type === 'text') {
+                    data.content = el.innerText;
+                    data.color = rgbToHex(window.getComputedStyle(el).color);
+                    data.size = parseInt(window.getComputedStyle(el).fontSize);
+                    data.fontWeight = window.getComputedStyle(el).fontWeight;
+                } else if (type === 'image') {
+                    data.src = el.querySelector('img').src;
+                    data.width = parseInt(window.getComputedStyle(el).width);
+                } else if (type === 'avatar') {
+                    // [ĐÃ FIX] Lấy width của chính khung (el), thay vì lấy của img bên trong
+                    data.width = parseInt(window.getComputedStyle(el).width) || 200;
+                    data.borderWidth = parseInt(window.getComputedStyle(el).borderWidth) || 0;
+                    data.borderColor = rgbToHex(window.getComputedStyle(el).borderColor);
+                }
+                elementsData.push(data);
+            });
+
+            return {
+                bg_color: document.getElementById('bgColor').value,
+                bg_image: document.getElementById('bgImage').value,
+                elements: elementsData
+            };
+        }
+
+        // 5. Gửi lên Server để LƯU THÀNH MẪU CHUNG
+        function promptSaveTemplate() {
+            const name = prompt("Nhập tên cho Mẫu thiết kế này (VD: Mẫu Đại Hội Y Tế):");
+            if (!name || name.trim() === '') return;
+
+            const configData = getCanvasData();
+
+            fetch('{{ route('api.save_template') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                body: JSON.stringify({ name: name.trim(), config: configData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Đã lưu mẫu thành công vào Thư viện hệ thống!');
+                    loadGlobalTemplates(); // Tải lại danh sách cột trái
+                }
+            })
+            .catch(err => {
+                alert('Có lỗi xảy ra khi lưu mẫu!');
+                console.error(err);
+            });
+        }
+
+        // Hàm Save Design vào Sự kiện hiện tại (Của bạn trước đó) SỬA LẠI TÍ:
+        function saveDesign() {
+            const btnSave = document.getElementById('btn-save');
+            btnSave.innerHTML = `<span class="material-symbols-outlined animate-spin">refresh</span> Đang lưu...`;
+
+            const configData = getCanvasData();
+
+            fetch('{{ route('api.save_design', $meeting->id) }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                body: JSON.stringify(configData)
             }).then(res => res.json()).then(data => {
                 btnSave.innerHTML = `Đã lưu xong!`; btnSave.classList.replace('bg-indigo-600', 'bg-emerald-500');
                 setTimeout(() => { btnSave.innerHTML = `Lưu thiết kế`; btnSave.classList.replace('bg-emerald-500', 'bg-indigo-600'); }, 2000);

@@ -83,7 +83,10 @@ Route::middleware(['auth'])->group(function () {
     // API lấy danh sách cổng đang hoạt động và API gửi nhịp tim
     Route::get('/api/meetings/{meeting}/active-gates', [MeetingController::class, 'getActiveGates']);
     Route::post('/api/meetings/{meeting}/gate-heartbeat', [MeetingController::class, 'gateHeartbeat']);
-
+    //Template Welcome
+    Route::get('/api/welcome-templates', [MeetingController::class, 'getTemplates'])->name('api.get_templates');
+    Route::post('/api/welcome-templates', [MeetingController::class, 'saveTemplate'])->name('api.save_template');
+    Route::delete('/api/welcome-templates/{id}', [MeetingController::class, 'deleteTemplate'])->name('api.delete_template');
     // Admin: Quản lý User (CRUD)
     Route::prefix('admin')->name('admin.')->group(function () {
         // 1. Quản lý user & cấp quyền riêng lẻ

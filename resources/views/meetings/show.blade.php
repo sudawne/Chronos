@@ -39,12 +39,12 @@
                         <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Điểm danh</span>
                     </div>
                     
-                    {{-- Nút Webcam được đẩy lên làm nút chính yếu --}}
-                    <a href="{{ route('meetings.online', $meeting->id) }}" target="_blank" 
+                    {{-- [ĐÃ SỬA] Nút Webcam được chuyển thành Button để mở Modal Cổng Phụ --}}
+                    <button type="button" onclick="openGateModal()" 
                        class="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition-all duration-300 active:scale-95">
                         <span class="material-symbols-outlined text-[18px]">photo_camera</span>
-                        <span class="text-sm font-semibold">Webcam Điểm danh</span>
-                    </a>
+                        <span class="text-sm font-semibold">Cổng Phụ (Webcam)</span>
+                    </button>
 
                     <a href="{{ route('meetings.scan_qr', $meeting->id) }}" target="_blank" 
                        class="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 bg-transparent text-slate-600 hover:bg-slate-50 hover:text-rose-600 rounded-xl transition-all duration-300 active:scale-95" title="Quét bằng điện thoại">
@@ -63,7 +63,7 @@
                     <a href="{{ route('meetings.welcome', $meeting->id) }}" target="_blank" 
                        class="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-all duration-300 active:scale-95 border border-indigo-100/50">
                         <span class="material-symbols-outlined text-[18px]">desktop_windows</span>
-                        <span class="text-sm font-bold">Welcome</span>
+                        <span class="text-sm font-bold">Welcome Screen</span>
                     </a>
 
                     <a href="{{ route('meetings.designer', $meeting->id) }}" target="_blank" 
@@ -317,6 +317,30 @@
     </div>
 </div>
 
+{{-- [ĐÃ THÊM] MODAL CHỌN CỔNG PHỤ AI --}}
+<div id="gate-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center">
+    <div id="gate-modal-box" class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl transform scale-95 transition-all duration-300 relative border border-slate-100">
+        <button onclick="closeGateModal()" class="absolute top-6 right-6 text-slate-400 hover:text-rose-500 transition-colors w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 hover:bg-rose-50">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+
+        <h2 class="text-2xl font-extrabold text-slate-800 mb-2">Chọn Cổng Điểm Danh</h2>
+        <p class="text-sm text-slate-500 mb-6">Hệ thống hỗ trợ nhiều cổng quét song song. Hãy chọn cổng muốn mở trên thiết bị này.</p>
+
+        <div class="space-y-3 mb-6" id="gate-list">
+            </div>
+
+        <div class="pt-5 border-t border-slate-100 mt-2">
+            <label class="text-xs font-bold text-slate-500 uppercase mb-2 block tracking-wider">Hoặc tạo tên cổng mới</label>
+            <div class="flex gap-2">
+                <input type="text" id="custom-gate-name" placeholder="VD: Cổng VIP, Cửa Hậu..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                <button type="button" onclick="openCustomGate()" class="px-5 py-2.5 bg-slate-800 hover:bg-black text-white rounded-xl text-sm font-bold transition-all shadow-md active:scale-95">Mở</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL CẬP NHẬT ẢNH KHUÔN MẶT --}}
 <div id="face-modal-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] hidden items-center justify-center opacity-0 transition-opacity duration-300">
     <div id="face-modal-box" class="bg-white rounded-3xl w-full max-w-lg mx-4 shadow-2xl transform scale-95 transition-all duration-300 overflow-hidden relative border border-slate-100">
         
@@ -361,6 +385,7 @@
     </div>
 </div>
 
+{{-- MODAL THÊM ĐẠI BIỂU MỚI --}}
 <div id="add-guest-modal-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] hidden items-center justify-center opacity-0 transition-opacity duration-300 overflow-y-auto">
     <div id="add-guest-modal-box" class="bg-white rounded-3xl w-full max-w-2xl mx-4 my-8 shadow-2xl transform scale-95 transition-all duration-300 relative border border-slate-100">
         
@@ -432,6 +457,86 @@
 </div>
 
 <script>
+    // ==========================================
+    // LOGIC CHO MODAL CỔNG PHỤ (GATE SELECTION)
+    // ==========================================
+    let checkGateInterval;
+    const meetingId = {{ $meeting->id }};
+    const gateListNames = ['Cổng 1', 'Cổng 2', 'Cổng 3', 'Cổng 4']; // Bạn có thể thêm Cổng 5, 6 tùy ý
+
+    function openGateModal() {
+        const backdrop = document.getElementById('gate-modal-backdrop');
+        const box = document.getElementById('gate-modal-box');
+        
+        backdrop.classList.remove('hidden');
+        setTimeout(() => {
+            backdrop.classList.remove('opacity-0');
+            box.classList.remove('scale-95');
+        }, 10);
+        
+        // Gọi API load trạng thái cổng ngay khi mở và sau đó lặp lại mỗi 2.5s
+        fetchActiveGates();
+        checkGateInterval = setInterval(fetchActiveGates, 2500);
+    }
+
+    function closeGateModal() {
+        clearInterval(checkGateInterval); // Dừng quét khi đóng modal
+        const backdrop = document.getElementById('gate-modal-backdrop');
+        const box = document.getElementById('gate-modal-box');
+
+        backdrop.classList.add('opacity-0');
+        box.classList.add('scale-95');
+        setTimeout(() => backdrop.classList.add('hidden'), 300);
+    }
+
+    // Hàm gọi API về Laravel để lấy các cổng đang "Thức" (Gửi heartbeat)
+    function fetchActiveGates() {
+        fetch(`/api/meetings/${meetingId}/active-gates`)
+            .then(res => res.json())
+            .then(data => {
+                const activeGates = data.active_gates || [];
+                let html = '';
+                
+                gateListNames.forEach(gate => {
+                    const isActive = activeGates.includes(gate);
+                    
+                    html += `
+                        <div class="flex items-center justify-between p-4 rounded-xl border ${isActive ? 'border-rose-200 bg-rose-50/50' : 'border-slate-200 hover:border-indigo-300 bg-white'} transition-colors">
+                            <div class="flex items-center gap-3">
+                                <span class="relative flex h-3 w-3">
+                                  ${isActive ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>' : ''}
+                                  <span class="relative inline-flex rounded-full h-3 w-3 ${isActive ? 'bg-rose-500' : 'bg-slate-300'}"></span>
+                                </span>
+                                <span class="font-bold ${isActive ? 'text-rose-700' : 'text-slate-700'}">${gate}</span>
+                            </div>
+                            
+                            ${isActive 
+                                ? `<span class="text-xs font-bold text-rose-500 bg-rose-100 px-3 py-1.5 rounded-lg shadow-sm border border-rose-200">Đang mở ở máy khác</span>` 
+                                : `<button onclick="window.open('/meetings/${meetingId}/online?gate=${encodeURIComponent(gate)}', '_blank')" class="px-5 py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 text-sm font-bold rounded-xl transition-all active:scale-95 shadow-sm border border-indigo-100 hover:border-indigo-600">Mở trên máy này</button>`
+                            }
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('gate-list').innerHTML = html;
+            })
+            .catch(err => console.log('Đang load trạng thái cổng...'));
+    }
+
+    // Hàm mở tên cổng tuỳ chỉnh
+    function openCustomGate() {
+        const name = document.getElementById('custom-gate-name').value.trim();
+        if(name) {
+            window.open(`/meetings/${meetingId}/online?gate=${encodeURIComponent(name)}`, '_blank');
+        } else {
+            alert("Vui lòng nhập tên cổng!");
+        }
+    }
+
+
+    // ==========================================
+    // LOGIC CHO CÁC MODAL KHÁC CỦA BẠN (GIỮ NGUYÊN)
+    // ==========================================
     function openFaceModal(guestId, guestName) {
         const backdrop = document.getElementById('face-modal-backdrop');
         const box = document.getElementById('face-modal-box');

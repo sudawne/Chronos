@@ -40,14 +40,15 @@
 
         .designed-element {
             position: absolute;
-            text-shadow: 2px 4px 10px rgba(0,0,0,0.5);
+            /* ĐÃ XÓA HIỆU ỨNG ĐỔ BÓNG: Trả lại chữ sắc nét tuyệt đối như Design */
             white-space: nowrap; 
         }
 
         /* --- CÁC HIỆU ỨNG ANIMATION --- */
         .text-glow {
-            text-shadow: 0 0 25px rgba(255,255,255,0.9), 2px 4px 10px rgba(0,0,0,0.5) !important;
-            filter: brightness(1.15);
+            /* ĐÃ XÓA HIỆU ỨNG LOANG MÀU (text-shadow) */
+            /* Chỉ giữ lại hiệu ứng phóng to cực nhẹ (2%) để tạo nhịp điệu khi người dùng đi ngang qua */
+            transform: scale(1.02) !important; 
         }
 
         .avatar-glow {
@@ -71,7 +72,7 @@
 
                 @if(($el['type'] ?? 'text') == 'text')
                     <div id="{{ $el['id'] }}" class="designed-element"
-                         style="left: {{ $ex }}px; top: {{ $ey }}px; color: {{ $el['color'] ?? '#ffffff' }}; font-size: {{ $el['size'] ?? 24 }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }};">
+                         style="left: {{ $ex }}px; top: {{ $ey }}px; color: {{ $el['color'] ?? '#ffffff' }}; font-size: {{ $el['size'] ?? 24 }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; transform-origin: left center;">
                         {{ $el['content'] ?? $el['text'] }}
                     </div>
 
@@ -121,13 +122,13 @@
         let isProcessing = false;
         let isWelcoming = false;
 
-        // Lưu lại chính xác Giao diện Mặc định lúc thiết kế (Nội dung chữ + Kích cỡ)
+        // Lưu lại chính xác Giao diện Mặc định lúc thiết kế
         [elName, elPosition, elSeat].forEach(el => {
             if(el) {
                 el.dataset.defaultText = el.innerText;
                 el.dataset.baseSize = el.style.fontSize; 
-                // Chỉ làm mượt chữ sáng lên, không làm mượt size để tránh lỗi tràn dòng
-                el.style.transition = 'text-shadow 0.6s ease, filter 0.6s ease'; 
+                // Xóa hiệu ứng text-shadow khỏi transition, chỉ giữ mượt transform
+                el.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; 
             }
         });
 
@@ -136,7 +137,7 @@
             if (!el) return;
             
             el.innerText = text;
-            el.style.fontSize = el.dataset.baseSize; // Trả về cỡ chuẩn để đo
+            el.style.fontSize = el.dataset.baseSize; 
             
             const maxAllowedWidth = ARTBOARD_W - el.offsetLeft - 20; 
             if (el.scrollWidth > maxAllowedWidth) {
@@ -148,7 +149,6 @@
             el.classList.add('text-glow');
         }
 
-        // Bật Camera
         if (video) {
             navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false })
                 .then(stream => { video.srcObject = stream; })
@@ -158,7 +158,6 @@
                 });
         }
 
-        // Quét AI
         function captureAndSendFrame() {
             if (!video || !canvas || isProcessing || isWelcoming) return;
 
@@ -201,11 +200,9 @@
 
         setInterval(captureAndSendFrame, 1500);
 
-        // HIỆU ỨNG CHÀO MỪNG ĐẠI BIỂU
         function triggerWelcome(guest) {
             isWelcoming = true;
 
-            // Xử lý khung hình: Hiện ảnh gốc thay cho Camera
             if (video && recognizedAvatar) {
                 video.style.opacity = '0';
                 recognizedAvatar.src = guest.image_url;
@@ -213,32 +210,27 @@
                 if(avatarContainer) avatarContainer.classList.add('avatar-glow');
             }
 
-            // Điền chữ và làm bừng sáng
             fillAndFitText(elName, guest.name);
             fillAndFitText(elPosition, guest.position ? guest.position : "");
             fillAndFitText(elSeat, guest.seat ? guest.seat : "");
 
-            // BỘ ĐẾM 10 GIÂY KHÔI PHỤC LẠI MÀN HÌNH MẶC ĐỊNH
             setTimeout(() => {
-                
-                // 1. Khôi phục lại Camera (Hiệu ứng cross-fade mượt tự động bằng CSS)
                 if (video && recognizedAvatar) {
                     recognizedAvatar.style.opacity = '0';
                     video.style.opacity = '1';
                     if(avatarContainer) avatarContainer.classList.remove('avatar-glow');
                 }
 
-                // 2. Trả lại chữ cái mặc định của bản Thiết Kế
                 [elName, elPosition, elSeat].forEach(el => {
                     if(el) {
-                        el.innerText = el.dataset.defaultText; // Lấy lại chữ cũ (vd: "Tên Đại Biểu")
-                        el.style.fontSize = el.dataset.baseSize; // Lấy lại cỡ chữ cũ
+                        el.innerText = el.dataset.defaultText; 
+                        el.style.fontSize = el.dataset.baseSize; 
                         el.classList.remove('text-glow');
                     }
                 });
 
                 isWelcoming = false;
-            }, 10000); // 10 giây
+            }, 10000); 
         }
     </script>
 </body>
