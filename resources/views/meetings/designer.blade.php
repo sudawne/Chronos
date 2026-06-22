@@ -155,8 +155,8 @@
                             <img src="{{ $el['src'] }}" style="width: {{ $el['width'] }}px;">
                         </div>
                     @elseif(($el['type'] ?? '') == 'avatar')
-                        <div id="{{ $el['id'] }}" class="draggable" data-type="avatar" style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; border-radius: 50%; overflow: hidden; border: {{ $el['borderWidth'] ?? 4 }}px solid {{ $el['borderColor'] ?? '#ffffff' }}; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
-                            <img src="https://ui-avatars.com/api/?name=Avatar&size=300" style="width: {{ $el['width'] ?? 200 }}px; height: {{ $el['width'] ?? 200 }}px; object-fit: cover;">
+                        <div id="{{ $el['id'] }}" class="draggable" data-type="avatar" style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; border-radius: 50%; overflow: hidden; border: {{ $el['borderWidth'] ?? 4 }}px solid {{ $el['borderColor'] ?? '#ffffff' }}; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: {{ $el['width'] ?? 200 }}px; height: {{ $el['width'] ?? 200 }}px;">
+                            <img src="https://ui-avatars.com/api/?name=Avatar&size=300" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
                     @endif
                 @endforeach
@@ -175,6 +175,7 @@
                     <p class="text-sm text-center">Bấm vào một chữ/ảnh<br>trên khung vẽ để sửa</p>
                 </div>
                 
+                {{-- BẢNG ĐIỀU KHIỂN: TEXT --}}
                 <div id="prop-text-panel" class="hidden space-y-5">
                     <div>
                         <label class="text-[13px] font-semibold block mb-1">Nội dung</label>
@@ -199,20 +200,22 @@
                         </select>
                     </div>
                 </div>
+
+                {{-- BẢNG ĐIỀU KHIỂN: AVATAR --}}
                 <div id="prop-avatar-panel" class="hidden space-y-5">
                     <div class="flex gap-4">
                         <div class="flex-1">
                             <label class="text-[13px] font-semibold block mb-1">Kích cỡ ảnh</label>
-                            <input type="number" id="prop-avatar-size" ...>
+                            <input type="number" id="prop-avatar-size" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm outline-none" title="Đường kính khung tròn">
                         </div>
                         <div class="flex-1">
                             <label class="text-[13px] font-semibold block mb-1">Độ dày viền</label>
-                            <input type="number" id="prop-avatar-border-width" ...>
+                            <input type="number" id="prop-avatar-border-width" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm outline-none" title="Độ dày đường viền tròn">
                         </div>
                     </div>
                     <div>
                         <label class="text-[13px] font-semibold block mb-1">Màu viền ảnh</label>
-                        <input type="color" id="prop-avatar-border-color" ...>
+                        <input type="color" id="prop-avatar-border-color" class="w-full h-10 rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-800 border-none p-1">
                     </div>
                 </div>
 
@@ -269,13 +272,15 @@
             el.style.top = '150px';
             el.style.borderRadius = '50%';
             el.style.overflow = 'hidden';
-            el.style.border = '6px solid #ffffff';
+            el.style.border = '6px solid #ffffff'; // Mặc định độ dày viền 6px, màu trắng
             el.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+            el.style.width = '240px';
+            el.style.height = '240px';
             
             const img = document.createElement('img');
             img.src = 'https://ui-avatars.com/api/?name=Avatar&size=300';
-            img.style.width = '240px';
-            img.style.height = '240px';
+            img.style.width = '100%';
+            img.style.height = '100%';
             img.style.objectFit = 'cover';
             
             el.appendChild(img);
@@ -339,47 +344,59 @@
             document.removeEventListener('touchmove', drag); document.removeEventListener('touchend', dragEnd);
         }
 
+        // HÀM CHỌN PHẦN TỬ VÀ HIỂN THỊ ĐÚNG BẢNG ĐIỀU KHIỂN
         function selectElement(el) {
-            deselectElement(); selectedElement = el; selectedElement.classList.add('selected-element');
+            deselectElement(); 
+            selectedElement = el; 
+            selectedElement.classList.add('selected-element');
+            
             document.getElementById('no-selection').classList.add('hidden');
             document.getElementById('prop-action-panel').classList.remove('hidden');
             
             if (el.dataset.type === 'text') {
                 document.getElementById('prop-text-panel').classList.remove('hidden');
                 document.getElementById('prop-avatar-panel').classList.add('hidden');
+                
                 document.getElementById('prop-text').value = el.innerText;
                 document.getElementById('prop-color').value = rgbToHex(window.getComputedStyle(el).color);
                 document.getElementById('prop-size').value = parseInt(window.getComputedStyle(el).fontSize);
                 document.getElementById('prop-weight').value = window.getComputedStyle(el).fontWeight;
                 document.getElementById('prop-text').disabled = (el.id === 'el_name' || el.id === 'el_position' || el.id === 'el_seat');
-            }
+            } 
             else if (el.dataset.type === 'avatar') {
-                // 1. Hiện bảng Avatar, giấu bảng Text
                 document.getElementById('prop-avatar-panel').classList.remove('hidden');
                 document.getElementById('prop-text-panel').classList.add('hidden');
                 
-                // 2. Hút dữ liệu hiện tại gán vào input
+                // [ĐÃ FIX CHUẨN] Dùng borderTopWidth và borderTopColor thay vì borderWidth/Color
                 document.getElementById('prop-avatar-size').value = parseInt(window.getComputedStyle(el).width) || 200;
-                document.getElementById('prop-avatar-border-width').value = parseInt(window.getComputedStyle(el).borderWidth) || 0;
-                document.getElementById('prop-avatar-border-color').value = rgbToHex(window.getComputedStyle(el).borderColor);
+                document.getElementById('prop-avatar-border-width').value = parseInt(window.getComputedStyle(el).borderTopWidth) || 0;
+                document.getElementById('prop-avatar-border-color').value = rgbToHex(window.getComputedStyle(el).borderTopColor);
+            } 
+            else {
+                document.getElementById('prop-text-panel').classList.add('hidden');
+                document.getElementById('prop-avatar-panel').classList.add('hidden');
             }
         }
+        
         function deselectElement() {
             if(selectedElement) selectedElement.classList.remove('selected-element');
             selectedElement = null;
             document.getElementById('no-selection').classList.remove('hidden');
             document.getElementById('prop-text-panel').classList.add('hidden');
+            document.getElementById('prop-avatar-panel').classList.add('hidden');
             document.getElementById('prop-action-panel').classList.add('hidden');
         }
+        
         function deleteSelected() { if(selectedElement) { selectedElement.remove(); deselectElement(); } }
         document.addEventListener('keydown', (e) => { if(e.key === 'Delete' && selectedElement && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') deleteSelected(); });
 
+        // --- SỰ KIỆN ĐIỀU CHỈNH CHỮ ---
         document.getElementById('prop-text').addEventListener('input', (e) => { if(selectedElement && !e.target.disabled) selectedElement.innerText = e.target.value; });
         document.getElementById('prop-color').addEventListener('input', (e) => { if(selectedElement) selectedElement.style.color = e.target.value; });
         document.getElementById('prop-size').addEventListener('input', (e) => { if(selectedElement) selectedElement.style.fontSize = `${e.target.value}px`; });
         document.getElementById('prop-weight').addEventListener('change', (e) => { if(selectedElement) selectedElement.style.fontWeight = e.target.value; });
 
-        // --- SỰ KIỆN ĐIỀU CHỈNH AVATAR ---
+        // --- SỰ KIỆN ĐIỀU CHỈNH AVATAR [ĐÃ FIX CHUẨN] ---
         document.getElementById('prop-avatar-size').addEventListener('input', (e) => { 
             if(selectedElement && selectedElement.dataset.type === 'avatar') {
                 const size = `${e.target.value}px`;
@@ -390,25 +407,25 @@
         
         document.getElementById('prop-avatar-border-width').addEventListener('input', (e) => { 
             if(selectedElement && selectedElement.dataset.type === 'avatar') {
-                selectedElement.style.borderWidth = `${e.target.value}px`;
+                const color = document.getElementById('prop-avatar-border-color').value || '#ffffff';
+                selectedElement.style.border = `${e.target.value}px solid ${color}`;
             }
         });
         
         document.getElementById('prop-avatar-border-color').addEventListener('input', (e) => { 
             if(selectedElement && selectedElement.dataset.type === 'avatar') {
-                selectedElement.style.borderColor = e.target.value;
+                const width = document.getElementById('prop-avatar-border-width').value || 0;
+                selectedElement.style.border = `${width}px solid ${e.target.value}`;
             }
         });
-        
+
         function rgbToHex(rgb) {
             let match = rgb.match(/\d+/g); if(!match) return "#ffffff";
             let [r, g, b] = match; return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
         }
 
-        function saveDesign() {
-            const btnSave = document.getElementById('btn-save');
-            btnSave.innerHTML = `<span class="material-symbols-outlined animate-spin">refresh</span> Đang lưu...`;
-            
+        // --- ĐÓNG GÓI DỮ LIỆU ĐỂ LƯU ---
+        function getCanvasData() {
             const elementsData = [];
             document.querySelectorAll('.draggable').forEach(el => {
                 const type = el.dataset.type || 'text';
@@ -420,29 +437,26 @@
                     data.fontWeight = window.getComputedStyle(el).fontWeight;
                 } else if (type === 'image') {
                     data.src = el.querySelector('img').src;
-                    data.width = parseInt(el.querySelector('img').style.width);
+                    data.width = parseInt(window.getComputedStyle(el).width);
                 } else if (type === 'avatar') {
-                    data.width = parseInt(el.querySelector('img').style.width) || 200;
-                    data.borderWidth = parseInt(window.getComputedStyle(el).borderWidth) || 0;
-                    data.borderColor = rgbToHex(window.getComputedStyle(el).borderColor);
+                    // [ĐÃ FIX CHUẨN] Sử dụng borderTopWidth và borderTopColor để tránh lỗi chuỗi rỗng
+                    data.width = parseInt(window.getComputedStyle(el).width) || 200;
+                    data.borderWidth = parseInt(window.getComputedStyle(el).borderTopWidth) || 0;
+                    data.borderColor = rgbToHex(window.getComputedStyle(el).borderTopColor);
                 }
                 elementsData.push(data);
             });
 
-            fetch('{{ route('api.save_design', $meeting->id) }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                body: JSON.stringify({ bg_color: document.getElementById('bgColor').value, bg_image: document.getElementById('bgImage').value, elements: elementsData })
-            }).then(res => res.json()).then(data => {
-                btnSave.innerHTML = `Đã lưu xong!`; btnSave.classList.replace('bg-indigo-600', 'bg-emerald-500');
-                setTimeout(() => { btnSave.innerHTML = `Lưu thiết kế`; btnSave.classList.replace('bg-emerald-500', 'bg-indigo-600'); }, 2000);
-            });
+            return {
+                bg_color: document.getElementById('bgColor').value,
+                bg_image: document.getElementById('bgImage').value,
+                elements: elementsData
+            };
         }
 
-        //Lưu template
+        // --- LOGIC TEMPLATE & LƯU CHUNG ---
         let globalTemplates = [];
 
-        // 1. Tự động tải danh sách Mẫu từ Database khi vừa vào trang
         document.addEventListener('DOMContentLoaded', loadGlobalTemplates);
 
         function loadGlobalTemplates() {
@@ -454,8 +468,6 @@
             });
         }
 
-        // 2. Vẽ danh sách nút Mẫu ra màn hình (ĐÃ CẬP NHẬT GIAO DIỆN NÚT XÓA)
-        // 2. Vẽ danh sách nút Mẫu ra màn hình (HIỂN THỊ XEM TRƯỚC TRỰC QUAN)
         function renderTemplates() {
             const container = document.getElementById('template-list');
             if (globalTemplates.length === 0) {
@@ -465,87 +477,58 @@
 
             let html = '';
             globalTemplates.forEach(tpl => {
-                // Đọc dữ liệu thiết kế từ Database
                 const data = typeof tpl.config === 'string' ? JSON.parse(tpl.config) : tpl.config;
-                
-                // --- 1. Phục dựng Ảnh nền / Màu nền ---
-                let bgStyle = '';
-                if (data.bg_image) {
-                    bgStyle = `background-image: url('${data.bg_image}'); background-size: cover; background-position: center;`;
-                } else {
-                    bgStyle = `background-color: ${data.bg_color || '#0f172a'};`;
-                }
+                let bgStyle = data.bg_image 
+                    ? `background-image: url('${data.bg_image}'); background-size: cover; background-position: center;` 
+                    : `background-color: ${data.bg_color || '#0f172a'};`;
 
-                // --- 2. Phục dựng các thẻ chữ, hình ảnh, khung avatar ---
                 let innerHtml = '';
                 if (data.elements) {
                     data.elements.forEach(el => {
                         if (el.type === 'text') {
-                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color || '#ffffff'}; font-size: ${el.size}px; font-weight: ${el.fontWeight || 'normal'}; white-space: nowrap; text-shadow: 2px 4px 10px rgba(0,0,0,0.5);">${el.content || el.text || ''}</div>`;
+                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color || '#ffffff'}; font-size: ${el.size}px; font-weight: ${el.fontWeight || 'normal'}; white-space: nowrap;">${el.content || el.text || ''}</div>`;
                         } else if (el.type === 'image') {
                             innerHtml += `<img src="${el.src}" style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; height: auto;">`;
                         } else if (el.type === 'avatar') {
-                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width || 200}px; height: ${el.width || 200}px; border-radius: 50%; border: ${el.borderWidth || 0}px solid ${el.borderColor || 'transparent'}; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);"></div>`;
+                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width || 200}px; height: ${el.width || 200}px; border-radius: 50%; border: ${el.borderWidth || 0}px solid ${el.borderColor || 'transparent'}; overflow: hidden; background: #000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);"><img src="https://ui-avatars.com/api/?name=Avatar&size=300" style="width: 100%; height: 100%; object-fit: cover;"></div>`;
                         }
                     });
                 }
 
-                // --- 3. Gói tất cả vào một Mini-Artboard và thu nhỏ bằng CSS Scale ---
                 html += `
-                    <div class="relative rounded-xl border border-slate-300 hover:border-indigo-500 overflow-hidden group transition-all shadow-sm bg-slate-100" style="width: 120px; height: 67.5px;">
-                        
+                    <div class="relative rounded-xl border-2 border-slate-200 hover:border-indigo-500 overflow-hidden group transition-all shadow-sm bg-slate-100 cursor-pointer" style="width: 120px; height: 67.5px;">
                         <div class="absolute top-0 left-0 w-[960px] h-[540px] pointer-events-none" style="transform: scale(0.125); transform-origin: top left; ${bgStyle}">
                             ${innerHtml}
                         </div>
-                        
-                        <button onclick="applyTemplate(${tpl.id})" class="absolute inset-0 w-full h-full bg-slate-900/30 hover:bg-slate-900/10 transition-colors focus:outline-none flex items-end justify-center pb-1 z-10">
-                            <span class="text-[9px] font-bold text-white px-2 py-0.5 bg-black/60 rounded backdrop-blur-sm truncate max-w-[95%] shadow-sm leading-tight">${tpl.name}</span>
+                        <button onclick="applyTemplate(${tpl.id})" class="absolute inset-0 w-full h-full bg-transparent hover:bg-white/10 transition-colors focus:outline-none flex items-end justify-center pb-1 z-10">
+                            <span class="text-[9px] font-bold text-white px-2 py-0.5 bg-black/60 rounded-full backdrop-blur-sm truncate max-w-[95%] shadow-sm leading-tight">${tpl.name}</span>
                         </button>
-                        
                         <button onclick="deleteTemplate(${tpl.id})" class="absolute top-1 right-1 w-5 h-5 bg-white/90 hover:bg-rose-500 rounded flex items-center justify-center text-rose-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all z-20 shadow-sm" title="Xóa mẫu này">
                             <span class="material-symbols-outlined text-[13px]">delete</span>
                         </button>
                     </div>
                 `;
             });
-            
             container.innerHTML = html;
         }
 
-        // THÊM HÀM MỚI: XỬ LÝ XÓA MẪU
         function deleteTemplate(id) {
             if(!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn mẫu thiết kế này không?')) return;
-
             fetch(`/api/welcome-templates/${id}`, {
                 method: 'DELETE',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content 
-                }
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
             })
             .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    loadGlobalTemplates(); // Xóa xong tự động load lại danh sách
-                } else {
-                    alert('Lỗi: ' + data.message);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Có lỗi xảy ra khi xóa mẫu!');
-            });
+            .then(data => { if (data.status === 'success') loadGlobalTemplates(); else alert('Lỗi: ' + data.message); })
+            .catch(err => { console.error(err); alert('Có lỗi xảy ra khi xóa mẫu!'); });
         }
 
-        // 3. Hàm Áp dụng Mẫu
         function applyTemplate(templateId) {
             if(!confirm('Áp dụng Template sẽ ghi đè thiết kế hiện tại. Tiếp tục?')) return;
-            
             const tpl = globalTemplates.find(t => t.id === templateId);
             if (!tpl) return;
 
             const data = typeof tpl.config === 'string' ? JSON.parse(tpl.config) : tpl.config;
-            
             document.getElementById('bgColor').value = data.bg_color || '#0f172a';
             artboard.style.backgroundColor = data.bg_color || '#0f172a';
             
@@ -583,10 +566,13 @@
                         el.style.overflow = 'hidden';
                         el.style.border = `${elData.borderWidth}px solid ${elData.borderColor}`;
                         el.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+                        el.style.width = (elData.width || 200) + 'px';
+                        el.style.height = (elData.width || 200) + 'px';
+                        
                         const img = document.createElement('img');
                         img.src = 'https://ui-avatars.com/api/?name=Avatar&size=300';
-                        img.style.width = elData.width + 'px';
-                        img.style.height = elData.width + 'px';
+                        img.style.width = '100%';
+                        img.style.height = '100%';
                         img.style.objectFit = 'cover';
                         el.appendChild(img);
                     }
@@ -596,73 +582,33 @@
             }
         }
 
-        // 4. Lấy dữ liệu trên khung vẽ gom thành Object
-        function getCanvasData() {
-            const elementsData = [];
-            document.querySelectorAll('.draggable').forEach(el => {
-                const type = el.dataset.type || 'text';
-                let data = { id: el.id, type: type, x: el.offsetLeft, y: el.offsetTop };
-                
-                if (type === 'text') {
-                    data.content = el.innerText;
-                    data.color = rgbToHex(window.getComputedStyle(el).color);
-                    data.size = parseInt(window.getComputedStyle(el).fontSize);
-                    data.fontWeight = window.getComputedStyle(el).fontWeight;
-                } else if (type === 'image') {
-                    data.src = el.querySelector('img').src;
-                    data.width = parseInt(window.getComputedStyle(el).width);
-                } else if (type === 'avatar') {
-                    // [ĐÃ FIX] Lấy width của chính khung (el), thay vì lấy của img bên trong
-                    data.width = parseInt(window.getComputedStyle(el).width) || 200;
-                    data.borderWidth = parseInt(window.getComputedStyle(el).borderWidth) || 0;
-                    data.borderColor = rgbToHex(window.getComputedStyle(el).borderColor);
-                }
-                elementsData.push(data);
-            });
-
-            return {
-                bg_color: document.getElementById('bgColor').value,
-                bg_image: document.getElementById('bgImage').value,
-                elements: elementsData
-            };
-        }
-
-        // 5. Gửi lên Server để LƯU THÀNH MẪU CHUNG
         function promptSaveTemplate() {
             const name = prompt("Nhập tên cho Mẫu thiết kế này (VD: Mẫu Đại Hội Y Tế):");
             if (!name || name.trim() === '') return;
 
-            const configData = getCanvasData();
-
             fetch('{{ route('api.save_template') }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                body: JSON.stringify({ name: name.trim(), config: configData })
+                body: JSON.stringify({ name: name.trim(), config: getCanvasData() })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
                     alert('Đã lưu mẫu thành công vào Thư viện hệ thống!');
-                    loadGlobalTemplates(); // Tải lại danh sách cột trái
+                    loadGlobalTemplates();
                 }
             })
-            .catch(err => {
-                alert('Có lỗi xảy ra khi lưu mẫu!');
-                console.error(err);
-            });
+            .catch(err => { alert('Có lỗi xảy ra khi lưu mẫu!'); console.error(err); });
         }
 
-        // Hàm Save Design vào Sự kiện hiện tại (Của bạn trước đó) SỬA LẠI TÍ:
         function saveDesign() {
             const btnSave = document.getElementById('btn-save');
             btnSave.innerHTML = `<span class="material-symbols-outlined animate-spin">refresh</span> Đang lưu...`;
 
-            const configData = getCanvasData();
-
             fetch('{{ route('api.save_design', $meeting->id) }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                body: JSON.stringify(configData)
+                body: JSON.stringify(getCanvasData())
             }).then(res => res.json()).then(data => {
                 btnSave.innerHTML = `Đã lưu xong!`; btnSave.classList.replace('bg-indigo-600', 'bg-emerald-500');
                 setTimeout(() => { btnSave.innerHTML = `Lưu thiết kế`; btnSave.classList.replace('bg-emerald-500', 'bg-indigo-600'); }, 2000);

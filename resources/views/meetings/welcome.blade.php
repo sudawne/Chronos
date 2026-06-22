@@ -59,7 +59,6 @@
 </head>
 
 <body class="h-screen w-full flex items-center justify-center">
-    <div class="absolute inset-0 bg-slate-900/30 -z-10 backdrop-blur-[2px]"></div>
 
     <div id="scale-wrapper" class="flex items-center justify-center w-full h-full">
         <div id="artboard" class="transition-all duration-500">

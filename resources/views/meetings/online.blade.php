@@ -2,38 +2,59 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cổng Phụ Check-in | {{ $meeting->title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; overflow: hidden; }
-        /* Lật ngược video để soi gương tự nhiên */
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; overflow: hidden; margin: 0; touch-action: none; }
+        
+        .bg-animated {
+            position: absolute; inset: 0; z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #0f172a 100%);
+        }
+        
         #videoElement { transform: scaleX(-1); }
-        #overlayCanvas { transform: scaleX(-1); pointer-events: none; }
+        
+        /* Viền sáng mờ to và rõ hơn */
+        .camera-glow {
+            box-shadow: 0 0 60px rgba(99, 102, 241, 0.15), inset 0 0 30px rgba(0,0,0,0.6);
+        }
     </style>
 </head>
-<body class="h-screen w-full flex flex-col items-center justify-center relative bg-slate-900 text-white p-4">
+<body class="h-screen w-full flex flex-col items-center justify-center relative text-white p-4">
+    
+    <div class="bg-animated"></div>
 
-    <div class="mb-4 text-center z-10">
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-500/20 text-indigo-400 rounded-full text-sm font-bold border border-indigo-500/30 mb-2">
-            <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-            STATION: <span class="uppercase">{{ $gateName }}</span>
+    <div class="absolute top-8 md:top-10 left-1/2 -translate-x-1/2 text-center z-10 w-full px-4">
+        <div class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-500/20 text-indigo-300 rounded-full text-xs md:text-sm font-bold border border-indigo-500/30 mb-3 shadow-lg backdrop-blur-sm">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse"></span>
+            STATION: <span class="uppercase tracking-widest">{{ $gateName }}</span>
         </div>
-        <h1 class="text-2xl font-extrabold text-white">{{ $meeting->title }}</h1>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-white/95 truncate drop-shadow-md">{{ $meeting->title }}</h1>
     </div>
 
-    <div class="relative rounded-3xl overflow-hidden border-4 border-slate-800 shadow-2xl bg-black w-full max-w-4xl aspect-video">
+    <div class="relative w-80 h-80 md:w-[560px] md:h-[560px] lg:w-[640px] lg:h-[640px] rounded-full overflow-hidden border-[8px] border-slate-800/80 bg-black shrink-0 camera-glow z-10 transition-all duration-300" id="camera-container">
         <video id="videoElement" autoplay playsinline muted class="w-full h-full object-cover"></video>
-        
-        <canvas id="overlayCanvas" class="absolute inset-0 w-full h-full"></canvas>
+        <div class="absolute inset-0 border-[6px] border-transparent rounded-full transition-colors duration-300" id="camera-border"></div>
+    </div>
 
-        <div id="toast-notify" class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-6 py-3 rounded-2xl shadow-[0_10px_25px_rgba(16,185,129,0.5)] font-bold text-lg opacity-0 transition-all duration-300 translate-y-10 flex items-center gap-3">
-            <span class="material-symbols-outlined">check_circle</span>
-            <span id="toast-name">Đã điểm danh...</span>
+    <div id="guest-info-card" class="-mt-16 md:-mt-24 opacity-0 translate-y-8 transition-all duration-500 ease-out flex flex-col items-center bg-slate-900/70 backdrop-blur-2xl border border-white/10 p-6 md:p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] w-[90%] max-w-lg text-center z-20">
+        
+        <div class="w-16 h-16 md:w-20 md:h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center mb-4 md:mb-5 shadow-[0_0_30px_rgba(16,185,129,0.4)] border-4 border-slate-900">
+            <span class="material-symbols-outlined text-4xl md:text-5xl">how_to_reg</span>
+        </div>
+        
+        <h2 id="guest-name" class="text-3xl md:text-4xl font-black text-white mb-2 drop-shadow-md tracking-tight">Nguyễn Văn A</h2>
+        <p id="guest-pos" class="text-indigo-200 font-semibold text-base md:text-lg mb-6">Đại biểu</p>
+        
+        <div class="inline-flex items-center gap-2.5 px-6 py-3 bg-black/50 rounded-full text-base font-bold text-white border border-slate-700/50 shadow-inner">
+            <span class="material-symbols-outlined text-[22px] text-amber-400">chair</span>
+            <span id="guest-seat">Ghế tự do</span>
         </div>
     </div>
 
@@ -41,34 +62,47 @@
 
     <script>
         const video = document.getElementById('videoElement');
-        const overlayCanvas = document.getElementById('overlayCanvas');
-        const overlayCtx = overlayCanvas.getContext('2d');
         const captureCanvas = document.getElementById('captureCanvas');
         const captureCtx = captureCanvas.getContext('2d');
-        const toast = document.getElementById('toast-notify');
-        const toastName = document.getElementById('toast-name');
+        
+        const infoCard = document.getElementById('guest-info-card');
+        const gName = document.getElementById('guest-name');
+        const gPos = document.getElementById('guest-pos');
+        const gSeat = document.getElementById('guest-seat');
+        const camBorder = document.getElementById('camera-border');
 
         let isProcessing = false;
-        let toastTimeout;
+        let hideCardTimeout;
 
-        // Bật Camera
+        // Mở Camera độ phân giải cao
         if (navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: false })
                 .then(function (stream) {
                     video.srcObject = stream;
-                    video.onloadedmetadata = () => {
-                        overlayCanvas.width = video.videoWidth;
-                        overlayCanvas.height = video.videoHeight;
-                    };
                 })
                 .catch(function (err) {
                     alert("Không thể mở Camera. Vui lòng kiểm tra quyền!");
                 });
         }
 
-        // ==========================================
-        // 1. LOGIC QUÉT KHUÔN MẶT (GIỮ NGUYÊN)
-        // ==========================================
+        // HÀM HIỆN THÔNG TIN (Xử lý mượt mà)
+        function showGuestInfo(name, position, seat, color) {
+            camBorder.style.borderColor = color || '#10b981';
+            setTimeout(() => camBorder.style.borderColor = 'transparent', 600);
+
+            gName.innerText = name;
+            gPos.innerText = position ? position : "Đại biểu tham dự";
+            gSeat.innerText = seat ? seat : "Ghế tự do";
+
+            infoCard.classList.remove('opacity-0', 'translate-y-8');
+            
+            clearTimeout(hideCardTimeout);
+            hideCardTimeout = setTimeout(() => {
+                infoCard.classList.add('opacity-0', 'translate-y-8');
+            }, 3500);
+        }
+
+        // QUÉT KHUÔN MẶT AI
         function captureAndSendFrame() {
             if (!video.videoWidth || isProcessing) return;
 
@@ -89,30 +123,11 @@
             })
             .then(res => res.json())
             .then(data => {
-                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
-                if (data.status === 'success' && data.detections) {
-                    data.detections.forEach(det => {
-                        let [x1, y1, x2, y2] = det.box;
-                        let color = det.color;
-                        let name = det.name;
-
-                        overlayCtx.beginPath();
-                        overlayCtx.lineWidth = 4;
-                        overlayCtx.strokeStyle = color;
-                        overlayCtx.roundRect(x1, y1, x2 - x1, y2 - y1, 10);
-                        overlayCtx.stroke();
-
-                        if (name !== "Khach La" && name !== "Unknown") {
-                            overlayCtx.fillStyle = color;
-                            overlayCtx.fillRect(x1, y1 - 40, x2 - x1, 40);
-                            overlayCtx.fillStyle = "#ffffff";
-                            overlayCtx.font = "bold 20px 'Plus Jakarta Sans'";
-                            overlayCtx.fillText(name, x1 + 10, y1 - 12);
-
-                            showToast(name);
-                        }
-                    });
+                if (data.status === 'success' && data.detections && data.detections.length > 0) {
+                    let person = data.detections[0];
+                    if (person.name !== "Khach La" && person.name !== "Unknown") {
+                        showGuestInfo(person.name, person.position, person.seat, person.color);
+                    }
                 }
             })
             .catch(err => console.error("Đang quét...", err))
@@ -123,39 +138,19 @@
 
         setInterval(captureAndSendFrame, 1200);
 
-        function showToast(name) {
-            toastName.innerText = name + " - OK";
-            toast.classList.remove('opacity-0', 'translate-y-10');
-            
-            clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-10');
-            }, 2500);
-        }
-
-        // ==========================================
-        // 2. [ĐÃ THÊM] LOGIC GỬI NHỊP TIM (HEARTBEAT)
-        // ==========================================
+        // HEARTBEAT
         function sendHeartbeat() {
             let formData = new FormData();
             formData.append('gate_name', '{{ $gateName }}');
-            
             fetch('/api/meetings/{{ $meeting->id }}/gate-heartbeat', {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
                 body: formData
-            }).catch(e => {
-                // Lỗi mạng ẩn đi để không làm phiền luồng camera
-                console.log("Heartbeat error", e);
-            }); 
+            }).catch(e => console.log("Heartbeat error")); 
         }
 
-        // Bắn nhịp tim ngay khi mở tab và lặp lại mỗi 4 giây
         sendHeartbeat();
         setInterval(sendHeartbeat, 4000); 
-
     </script>
 </body>
 </html>
