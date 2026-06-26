@@ -632,4 +632,18 @@ class MeetingController extends Controller
 
         return response()->json(['status' => 'success', 'message' => 'Xóa mẫu thành công!']);
     }
+
+    //Chớp mắt
+    public function toggleLiveness($id)
+    {
+        // Tìm cuộc họp dựa vào ID
+        $meeting = Meeting::findOrFail($id);
+        
+        // Đảo ngược trạng thái hiện tại (true thành false, false thành true)
+        $meeting->require_blink = !$meeting->require_blink;
+        $meeting->save();
+
+        // Trả về trang trước đó kèm thông báo thành công
+        return back()->with('success', 'Đã cập nhật cấu hình chống giả mạo (Yêu cầu chớp mắt)!');
+    }
 }

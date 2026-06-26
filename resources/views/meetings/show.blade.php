@@ -149,20 +149,36 @@
         </div>
 
         {{-- Config Card --}}
+        {{-- Config Card --}}
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 hover:shadow-md transition-shadow duration-300 flex items-start gap-5 relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform duration-500"></div>
             <div class="w-14 h-14 rounded-2xl bg-emerald-100/80 flex items-center justify-center shrink-0 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300">
                 <span class="material-symbols-outlined text-[28px]">memory</span>
             </div>
-            <div class="pt-1">
+            <div class="pt-1 w-full">
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Cấu hình AI</p>
                 <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 mb-2 border border-slate-200">
                     <span class="text-xs font-medium">Ngưỡng ArcFace:</span>
                     <span class="text-sm font-bold text-emerald-600">{{ $meeting->recognition_threshold }}</span>
                 </div>
-                <p class="text-xs text-slate-500 italic line-clamp-2 leading-relaxed" title="{{ $meeting->description ?? 'Không có ghi chú.' }}">
-                    {{ $meeting->description ?? 'Không có ghi chú thêm cho cuộc họp này.' }}
-                </p>
+                
+                {{-- CÔNG TẮC BẬT/TẮT YÊU CẦU CHỚP MẮT --}}
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                    <div class="flex flex-col">
+                        <span class="text-[13px] font-bold text-slate-700">Chống giả mạo (Anti-spoof)</span>
+                        <span class="text-[11px] text-slate-500">Yêu cầu chớp mắt</span>
+                    </div>
+                    
+                    {{-- Form toggle trạng thái --}}
+                    <form action="{{ route('meetings.toggle_liveness', $meeting->id) ?? '#' }}" method="POST">
+                        @csrf
+                        <button type="submit" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none transition-all duration-300">
+                            <span class="sr-only">Toggle Liveness</span>
+                            <span aria-hidden="true" class="{{ ($meeting->require_blink ?? false) ? 'bg-emerald-500' : 'bg-slate-300' }} pointer-events-none absolute mx-auto h-4 w-9 rounded-full transition-colors duration-200 ease-in-out"></span>
+                            <span aria-hidden="true" class="{{ ($meeting->require_blink ?? false) ? 'translate-x-5 border-emerald-500' : 'translate-x-0 border-slate-300' }} pointer-events-none absolute left-0 inline-block h-6 w-6 transform rounded-full border-2 bg-white shadow-sm ring-0 transition-transform duration-200 ease-in-out"></span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

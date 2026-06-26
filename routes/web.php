@@ -71,7 +71,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/meetings/{meeting}/designer', [App\Http\Controllers\MeetingController::class, 'designer'])->name('meetings.designer');
     Route::post('/api/meetings/{meeting}/save-design', [App\Http\Controllers\MeetingController::class, 'saveDesign'])->name('api.save_design');
     Route::get('/meetings/{meeting}/game', [MeetingController::class, 'game'])->name('meetings.game');
-
+    Route::post('/meetings/{meeting}/toggle-liveness', [\App\Http\Controllers\MeetingController::class, 'toggleLiveness'])->name('meetings.toggle_liveness');
     // Quản lý Đại biểu
     Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace']);
 

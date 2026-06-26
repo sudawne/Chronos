@@ -38,15 +38,8 @@
             box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 25px 50px -12px rgba(0,0,0,0.3);
         }
 
-        .designed-element {
-            position: absolute;
-            white-space: nowrap; 
-        }
-
-        .text-glow {
-            transform: scale(1.02) !important; 
-        }
-
+        .designed-element { position: absolute; white-space: nowrap; }
+        .text-glow { transform: scale(1.02) !important; }
         .avatar-glow {
             box-shadow: 0 0 35px rgba(255, 255, 255, 0.8), 0 0 70px rgba(89, 73, 190, 0.6) !important;
             transform: scale(1.02);
@@ -56,9 +49,13 @@
 
 <body class="h-screen w-full flex items-center justify-center relative">
 
+    <div id="blink-alert" class="fixed top-8 left-1/2 transform -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 bg-rose-500/90 backdrop-blur-md text-white rounded-full shadow-[0_10px_25px_rgba(225,29,72,0.4)] opacity-0 translate-y-[-20px] transition-all duration-300 pointer-events-none border border-rose-400/50">
+        <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+        <span class="font-bold tracking-wide" id="blink-text">Vui lòng chớp mắt để xác nhận!</span>
+    </div>
+
     <div id="scale-wrapper" class="flex items-center justify-center w-full h-full">
         <div id="artboard" class="transition-all duration-500">
-
             @foreach($elements as $el)
                 @php
                     $ex = ($el['x'] ?? 0) + $PAD_X;
@@ -66,49 +63,37 @@
                 @endphp
 
                 @if(($el['type'] ?? 'text') == 'text')
-                    <div id="{{ $el['id'] }}" class="designed-element"
-                         style="left: {{ $ex }}px; top: {{ $ey }}px; color: {{ $el['color'] ?? '#ffffff' }}; font-size: {{ $el['size'] ?? 24 }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; transform-origin: left center;">
-                        {{ $el['content'] ?? $el['text'] }}
-                    </div>
-
+                    <div id="{{ $el['id'] }}" class="designed-element" style="left: {{ $ex }}px; top: {{ $ey }}px; color: {{ $el['color'] ?? '#ffffff' }}; font-size: {{ $el['size'] ?? 24 }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; transform-origin: left center;">{{ $el['content'] ?? $el['text'] }}</div>
                 @elseif(($el['type'] ?? '') == 'image')
                     <img id="{{ $el['id'] }}" src="{{ $el['src'] }}" class="designed-element" style="left: {{ $ex }}px; top: {{ $ey }}px; width: {{ $el['width'] }}px; max-width: calc({{ $ARTBOARD_W }}px - {{ $ex }}px);">
-
                 @elseif(($el['type'] ?? '') == 'avatar')
-                    <div id="{{ $el['id'] }}" class="designed-element flex items-center justify-center overflow-hidden transition-all duration-500"
-                         style="left: {{ $ex }}px; top: {{ $ey }}px; width: {{ $el['width'] ?? 200 }}px; height: {{ $el['width'] ?? 200 }}px; border-radius: 50%; border: {{ $el['borderWidth'] ?? 4 }}px solid {{ $el['borderColor'] ?? '#ffffff' }}; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: #000;">
-
-                        <video id="live-video" autoplay playsinline muted
-                               style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); transition: opacity 0.6s ease-in-out;"></video>
-
-                        <img id="recognized-avatar" src=""
-                             style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.6s ease-in-out;">
+                    <div id="{{ $el['id'] }}" class="designed-element flex items-center justify-center overflow-hidden transition-all duration-500" style="left: {{ $ex }}px; top: {{ $ey }}px; width: {{ $el['width'] ?? 200 }}px; height: {{ $el['width'] ?? 200 }}px; border-radius: 50%; border: {{ $el['borderWidth'] ?? 4 }}px solid {{ $el['borderColor'] ?? '#ffffff' }}; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: #000;">
+                        <video id="live-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); transition: opacity 0.6s ease-in-out;"></video>
+                        <img id="recognized-avatar" src="" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.6s ease-in-out;">
                     </div>
                 @endif
             @endforeach
-
         </div>
     </div>
 
     <div id="control-buttons" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 hidden transition-opacity duration-300">
-        <button id="btn-wait" onclick="pauseWelcome()" title="Dừng màn hình" 
-                class="p-4 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-[0_10px_20px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center focus:outline-none">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
+        <button id="btn-wait" onclick="pauseWelcome()" title="Dừng màn hình" class="p-4 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-[0_10px_20px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </button>
-
-        <button id="btn-next" onclick="skipWelcome()" title="Tiếp tục ngay" 
-                class="p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-[0_10px_20px_rgba(37,99,235,0.3)] transition-all flex items-center justify-center focus:outline-none">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
-            </svg>
+        <button id="btn-next" onclick="skipWelcome()" title="Tiếp tục ngay" class="p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-[0_10px_20px_rgba(37,99,235,0.3)] transition-all flex items-center justify-center focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
         </button>
     </div>
 
     <canvas id="capture-canvas" style="display:none;"></canvas>
 
     <script>
+        // KIỂM TRA SETTING CHỚP MẮT TỪ SERVER
+        const REQUIRE_BLINK = {{ ($meeting->require_blink ?? false) ? 'true' : 'false' }};
+        const blinkAlert = document.getElementById('blink-alert');
+        const blinkText = document.getElementById('blink-text');
+        let blinkHideTimeout = null;
+
         const ARTBOARD_W = {{ $ARTBOARD_W }};
         const ARTBOARD_H = {{ $ARTBOARD_H }};
 
@@ -122,7 +107,6 @@
         const video = document.getElementById('live-video');
         const recognizedAvatar = document.getElementById('recognized-avatar');
         const avatarContainer = document.getElementById('el_avatar');
-
         const elName = document.getElementById('el_name');
         const elPosition = document.getElementById('el_position');
         const elSeat = document.getElementById('el_seat');
@@ -130,7 +114,6 @@
         const canvas = document.getElementById('capture-canvas');
         const ctx = canvas ? canvas.getContext('2d') : null;
         
-        // Lấy các element của nút bấm
         const controlButtons = document.getElementById('control-buttons');
         const btnWait = document.getElementById('btn-wait');
 
@@ -138,7 +121,6 @@
         let isWelcoming = false;
         let welcomeTimeout = null; 
 
-        // Lưu lại chính xác Giao diện Mặc định lúc thiết kế
         [elName, elPosition, elSeat].forEach(el => {
             if(el) {
                 el.dataset.defaultText = el.innerText;
@@ -149,27 +131,36 @@
 
         function fillAndFitText(el, text) {
             if (!el) return;
-            
             el.innerText = text;
             el.style.fontSize = el.dataset.baseSize; 
-            
             const maxAllowedWidth = ARTBOARD_W - el.offsetLeft - 20; 
             if (el.scrollWidth > maxAllowedWidth) {
                 const ratio = maxAllowedWidth / el.scrollWidth;
                 const baseSizeNum = parseFloat(el.dataset.baseSize);
                 el.style.fontSize = (baseSizeNum * ratio) + 'px';
             }
-
             el.classList.add('text-glow');
+        }
+
+        // HÀM HIỆN / ẨN THÔNG BÁO CHỚP MẮT
+        function showBlinkPrompt(name) {
+            blinkText.innerText = `Xin chào ${name}, vui lòng chớp mắt!`;
+            blinkAlert.classList.remove('opacity-0', 'translate-y-[-20px]');
+            blinkAlert.classList.add('opacity-100', 'translate-y-0');
+            
+            clearTimeout(blinkHideTimeout);
+            blinkHideTimeout = setTimeout(() => { hideBlinkPrompt(); }, 3000);
+        }
+
+        function hideBlinkPrompt() {
+            blinkAlert.classList.remove('opacity-100', 'translate-y-0');
+            blinkAlert.classList.add('opacity-0', 'translate-y-[-20px]');
         }
 
         if (video) {
             navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false })
                 .then(stream => { video.srcObject = stream; })
-                .catch(err => {
-                    console.error("Lỗi Camera:", err);
-                    alert("Vui lòng cấp quyền Camera trên trình duyệt!");
-                });
+                .catch(err => { alert("Vui lòng cấp quyền Camera trên trình duyệt!"); });
         }
 
         function captureAndSendFrame() {
@@ -190,22 +181,27 @@
                 method: 'POST',
                 body: formData
             })
-            .then(res => {
-                if(!res.ok) throw new Error("HTTP Status: " + res.status);
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 if (data.status === 'success' && data.detections && data.detections.length > 0) {
                     let person = data.detections[0];
 
                     if (person.name && person.name !== "Unknown" && person.name !== "Khach La") {
-                        triggerWelcome({
-                            name: person.name,
-                            position: person.position || '',
-                            seat: person.seat || '',
-                            image_url: person.image_url || '/images/default-avatar.png'
-                        });
+                        // LOGIC KIỂM TRA CHỚP MẮT
+                        if (REQUIRE_BLINK && !person.is_blinking) {
+                            showBlinkPrompt(person.name);
+                        } else {
+                            hideBlinkPrompt();
+                            triggerWelcome({
+                                name: person.name,
+                                position: person.position || '',
+                                seat: person.seat || '',
+                                image_url: person.image_url || '/images/default-avatar.png'
+                            });
+                        }
                     }
+                } else {
+                    hideBlinkPrompt();
                 }
             })
             .catch(err => console.error("Đang quét AI..."))
@@ -214,15 +210,12 @@
 
         setInterval(captureAndSendFrame, 1500);
 
-        // --- CÁC HÀM ĐIỀU KHIỂN MÀN HÌNH CHỜ ---
-
         function resetWelcomeScreen() {
             if (video && recognizedAvatar) {
                 recognizedAvatar.style.opacity = '0';
                 video.style.opacity = '1';
                 if(avatarContainer) avatarContainer.classList.remove('avatar-glow');
             }
-
             [elName, elPosition, elSeat].forEach(el => {
                 if(el) {
                     el.innerText = el.dataset.defaultText; 
@@ -230,12 +223,10 @@
                     el.classList.remove('text-glow');
                 }
             });
-
-            // Ẩn bảng điều khiển và reset màu của nút Pause về mặc định
             controlButtons.classList.add('hidden');
             btnWait.classList.replace('bg-slate-600', 'bg-amber-500');
-
             isWelcoming = false;
+            hideBlinkPrompt();
         }
 
         function triggerWelcome(guest) {
@@ -248,23 +239,17 @@
                 recognizedAvatar.style.opacity = '1';
                 if(avatarContainer) avatarContainer.classList.add('avatar-glow');
             }
-
             fillAndFitText(elName, guest.name);
             fillAndFitText(elPosition, guest.position ? guest.position : "");
             fillAndFitText(elSeat, guest.seat ? guest.seat : "");
 
-            // Hiện cụm nút điều khiển lên
             controlButtons.classList.remove('hidden');
 
-            welcomeTimeout = setTimeout(() => {
-                resetWelcomeScreen();
-            }, 10000); 
+            welcomeTimeout = setTimeout(() => { resetWelcomeScreen(); }, 10000); 
         }
 
         function pauseWelcome() {
             clearTimeout(welcomeTimeout); 
-            
-            // Đổi giao diện nút thành màu xám báo hiệu đang dừng AI
             btnWait.classList.replace('bg-amber-500', 'bg-slate-600');
         }
 
@@ -272,7 +257,6 @@
             clearTimeout(welcomeTimeout);
             resetWelcomeScreen();
         }
-
     </script>
 </body>
 </html>
