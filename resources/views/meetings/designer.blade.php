@@ -36,14 +36,24 @@
             position: absolute; cursor: grab; user-select: none;
             padding: 4px 8px; border: 2px dashed transparent;
         }
-        .draggable:hover { border-color: rgba(156, 163, 175, 0.5); }
+        /* Chỉ đổi màu viền ảo khi rê chuột vào Chữ/Ảnh, bỏ qua Avatar */
+        .draggable:not([data-type="avatar"]):hover { border-color: rgba(156, 163, 175, 0.5); }
         .draggable:active { cursor: grabbing; }
 
-        .selected-element {
+        /* Hiệu ứng Đang chọn (Focus) cho Chữ/Ảnh */
+        .selected-element:not([data-type="avatar"]) {
             border-color: #6366f1 !important;
             background: rgba(99, 102, 241, 0.15);
             z-index: 50;
         }
+
+        /* [ĐÃ FIX] Hiệu ứng Đang chọn cho AVATAR: Dùng outline rời thay vì đè lên border */
+        .selected-element[data-type="avatar"] {
+            outline: 3px dashed #6366f1 !important;
+            outline-offset: 4px;
+            z-index: 50;
+        }
+
         .draggable img { pointer-events: none; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -155,7 +165,7 @@
                             <img src="{{ $el['src'] }}" style="width: {{ $el['width'] }}px;">
                         </div>
                     @elseif(($el['type'] ?? '') == 'avatar')
-                        <div id="{{ $el['id'] }}" class="draggable" data-type="avatar" style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; border-radius: 50%; overflow: hidden; border: {{ $el['borderWidth'] ?? 4 }}px solid {{ $el['borderColor'] ?? '#ffffff' }}; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: {{ $el['width'] ?? 200 }}px; height: {{ $el['width'] ?? 200 }}px;">
+                        <div id="{{ $el['id'] }}" class="draggable" data-type="avatar" style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; padding: 0; border-radius: 50%; overflow: hidden; border: {{ $el['borderWidth'] ?? 4 }}px solid {{ $el['borderColor'] ?? '#ffffff' }}; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: {{ $el['width'] ?? 200 }}px; height: {{ $el['width'] ?? 200 }}px;">
                             <img src="https://ui-avatars.com/api/?name=Avatar&size=300" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
                     @endif
@@ -270,6 +280,7 @@
             el.dataset.type = 'avatar';
             el.style.left = '100px';
             el.style.top = '150px';
+            el.style.padding = '0'; // [ĐÃ FIX] Tránh lọt khe padding
             el.style.borderRadius = '50%';
             el.style.overflow = 'hidden';
             el.style.border = '6px solid #ffffff'; // Mặc định độ dày viền 6px, màu trắng
@@ -367,7 +378,7 @@
                 document.getElementById('prop-avatar-panel').classList.remove('hidden');
                 document.getElementById('prop-text-panel').classList.add('hidden');
                 
-                // [ĐÃ FIX CHUẨN] Dùng borderTopWidth và borderTopColor thay vì borderWidth/Color
+                // Dùng borderTopWidth và borderTopColor thay vì borderWidth/Color
                 document.getElementById('prop-avatar-size').value = parseInt(window.getComputedStyle(el).width) || 200;
                 document.getElementById('prop-avatar-border-width').value = parseInt(window.getComputedStyle(el).borderTopWidth) || 0;
                 document.getElementById('prop-avatar-border-color').value = rgbToHex(window.getComputedStyle(el).borderTopColor);
@@ -407,15 +418,15 @@
         
         document.getElementById('prop-avatar-border-width').addEventListener('input', (e) => { 
             if(selectedElement && selectedElement.dataset.type === 'avatar') {
-                const color = document.getElementById('prop-avatar-border-color').value || '#ffffff';
-                selectedElement.style.border = `${e.target.value}px solid ${color}`;
+                selectedElement.style.borderWidth = `${e.target.value}px`;
+                selectedElement.style.borderStyle = 'solid'; // Buộc hiển thị Solid
             }
         });
         
         document.getElementById('prop-avatar-border-color').addEventListener('input', (e) => { 
             if(selectedElement && selectedElement.dataset.type === 'avatar') {
-                const width = document.getElementById('prop-avatar-border-width').value || 0;
-                selectedElement.style.border = `${width}px solid ${e.target.value}`;
+                selectedElement.style.borderColor = e.target.value;
+                selectedElement.style.borderStyle = 'solid';
             }
         });
 
@@ -439,7 +450,7 @@
                     data.src = el.querySelector('img').src;
                     data.width = parseInt(window.getComputedStyle(el).width);
                 } else if (type === 'avatar') {
-                    // [ĐÃ FIX CHUẨN] Sử dụng borderTopWidth và borderTopColor để tránh lỗi chuỗi rỗng
+                    // Sử dụng borderTopWidth và borderTopColor để tránh lỗi chuỗi rỗng trên Chrome
                     data.width = parseInt(window.getComputedStyle(el).width) || 200;
                     data.borderWidth = parseInt(window.getComputedStyle(el).borderTopWidth) || 0;
                     data.borderColor = rgbToHex(window.getComputedStyle(el).borderTopColor);
@@ -562,6 +573,7 @@
                         img.style.width = elData.width + 'px';
                         el.appendChild(img);
                     } else if(elData.type === 'avatar') {
+                        el.style.padding = '0'; // Đảm bảo Avatar vừa khít
                         el.style.borderRadius = '50%';
                         el.style.overflow = 'hidden';
                         el.style.border = `${elData.borderWidth}px solid ${elData.borderColor}`;
