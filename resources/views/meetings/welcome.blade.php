@@ -40,14 +40,10 @@
 
         .designed-element {
             position: absolute;
-            /* ĐÃ XÓA HIỆU ỨNG ĐỔ BÓNG: Trả lại chữ sắc nét tuyệt đối như Design */
             white-space: nowrap; 
         }
 
-        /* --- CÁC HIỆU ỨNG ANIMATION --- */
         .text-glow {
-            /* ĐÃ XÓA HIỆU ỨNG LOANG MÀU (text-shadow) */
-            /* Chỉ giữ lại hiệu ứng phóng to cực nhẹ (2%) để tạo nhịp điệu khi người dùng đi ngang qua */
             transform: scale(1.02) !important; 
         }
 
@@ -58,7 +54,7 @@
     </style>
 </head>
 
-<body class="h-screen w-full flex items-center justify-center">
+<body class="h-screen w-full flex items-center justify-center relative">
 
     <div id="scale-wrapper" class="flex items-center justify-center w-full h-full">
         <div id="artboard" class="transition-all duration-500">
@@ -94,6 +90,22 @@
         </div>
     </div>
 
+    <div id="control-buttons" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 hidden transition-opacity duration-300">
+        <button id="btn-wait" onclick="pauseWelcome()" title="Dừng màn hình" 
+                class="p-4 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-[0_10px_20px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </button>
+
+        <button id="btn-next" onclick="skipWelcome()" title="Tiếp tục ngay" 
+                class="p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-[0_10px_20px_rgba(37,99,235,0.3)] transition-all flex items-center justify-center focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+            </svg>
+        </button>
+    </div>
+
     <canvas id="capture-canvas" style="display:none;"></canvas>
 
     <script>
@@ -117,21 +129,24 @@
 
         const canvas = document.getElementById('capture-canvas');
         const ctx = canvas ? canvas.getContext('2d') : null;
+        
+        // Lấy các element của nút bấm
+        const controlButtons = document.getElementById('control-buttons');
+        const btnWait = document.getElementById('btn-wait');
 
         let isProcessing = false;
         let isWelcoming = false;
+        let welcomeTimeout = null; 
 
         // Lưu lại chính xác Giao diện Mặc định lúc thiết kế
         [elName, elPosition, elSeat].forEach(el => {
             if(el) {
                 el.dataset.defaultText = el.innerText;
                 el.dataset.baseSize = el.style.fontSize; 
-                // Xóa hiệu ứng text-shadow khỏi transition, chỉ giữ mượt transform
                 el.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; 
             }
         });
 
-        // HÀM XỬ LÝ CHỮ: Tự động co chữ nếu quá dài
         function fillAndFitText(el, text) {
             if (!el) return;
             
@@ -199,8 +214,33 @@
 
         setInterval(captureAndSendFrame, 1500);
 
+        // --- CÁC HÀM ĐIỀU KHIỂN MÀN HÌNH CHỜ ---
+
+        function resetWelcomeScreen() {
+            if (video && recognizedAvatar) {
+                recognizedAvatar.style.opacity = '0';
+                video.style.opacity = '1';
+                if(avatarContainer) avatarContainer.classList.remove('avatar-glow');
+            }
+
+            [elName, elPosition, elSeat].forEach(el => {
+                if(el) {
+                    el.innerText = el.dataset.defaultText; 
+                    el.style.fontSize = el.dataset.baseSize; 
+                    el.classList.remove('text-glow');
+                }
+            });
+
+            // Ẩn bảng điều khiển và reset màu của nút Pause về mặc định
+            controlButtons.classList.add('hidden');
+            btnWait.classList.replace('bg-slate-600', 'bg-amber-500');
+
+            isWelcoming = false;
+        }
+
         function triggerWelcome(guest) {
             isWelcoming = true;
+            clearTimeout(welcomeTimeout); 
 
             if (video && recognizedAvatar) {
                 video.style.opacity = '0';
@@ -213,24 +253,26 @@
             fillAndFitText(elPosition, guest.position ? guest.position : "");
             fillAndFitText(elSeat, guest.seat ? guest.seat : "");
 
-            setTimeout(() => {
-                if (video && recognizedAvatar) {
-                    recognizedAvatar.style.opacity = '0';
-                    video.style.opacity = '1';
-                    if(avatarContainer) avatarContainer.classList.remove('avatar-glow');
-                }
+            // Hiện cụm nút điều khiển lên
+            controlButtons.classList.remove('hidden');
 
-                [elName, elPosition, elSeat].forEach(el => {
-                    if(el) {
-                        el.innerText = el.dataset.defaultText; 
-                        el.style.fontSize = el.dataset.baseSize; 
-                        el.classList.remove('text-glow');
-                    }
-                });
-
-                isWelcoming = false;
+            welcomeTimeout = setTimeout(() => {
+                resetWelcomeScreen();
             }, 10000); 
         }
+
+        function pauseWelcome() {
+            clearTimeout(welcomeTimeout); 
+            
+            // Đổi giao diện nút thành màu xám báo hiệu đang dừng AI
+            btnWait.classList.replace('bg-amber-500', 'bg-slate-600');
+        }
+
+        function skipWelcome() {
+            clearTimeout(welcomeTimeout);
+            resetWelcomeScreen();
+        }
+
     </script>
 </body>
 </html>
