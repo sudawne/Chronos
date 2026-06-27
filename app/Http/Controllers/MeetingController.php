@@ -403,33 +403,42 @@ class MeetingController extends Controller
             'is_attended' => false,
         ]);
 
-        // 3. Nếu người dùng có tải lên file ảnh, gọi API Python để lấy Vector
+        // 3. XỬ LÝ ẢNH & AI
         if ($request->hasFile('file_anh')) {
             $image = $request->file('file_anh');
-            $filename = $image->getClientOriginalName();
             
+            // Tạo tên file duy nhất (Ví dụ: 1700000000_guest_5.jpg)
+            $filename = time() . '_guest_' . $guest->id . '.' . $image->getClientOriginalExtension();
+            
+            // LƯU ẢNH VÀO Ổ CỨNG TRƯỚC (Vào public/storage/meetings/{id}/faces)
+            $image->storeAs("meetings/{$meeting->id}/faces", $filename, 'public');
+
             // Cập nhật tên file vào CSDL
             $guest->update(['image_filename' => $filename]);
 
             try {
+                // Gửi file vật lý từ ổ cứng sang Python API
+                $imagePath = storage_path("app/public/meetings/{$meeting->id}/faces/{$filename}");
+                
                 $response = \Illuminate\Support\Facades\Http::timeout(15)->attach(
-                    'file', file_get_contents($image->getRealPath()), $filename
+                    'file', file_get_contents($imagePath), $filename
                 )->post('http://localhost:8001/register_face');
 
                 if ($response->successful() && $response['status'] === 'success') {
+                    // Chuyển mảng float sang Binary BLOB
                     $binaryVector = pack('f*', ...$response['vector']);
                     $guest->update(['face_vector' => $binaryVector]);
+                    
                     return redirect()->back()->with('success', 'Đã thêm đại biểu ' . $guest->full_name . ' và nạp khuôn mặt thành công!');
                 } else {
-                    return redirect()->back()->with('warning', 'Đã thêm đại biểu ' . $guest->full_name . ' NHƯNG lỗi AI: ' . ($response['message'] ?? 'Không trích xuất được khuôn mặt.'));
+                    return redirect()->back()->with('warning', 'Đã lưu đại biểu & ảnh, NHƯNG lỗi AI: ' . ($response['message'] ?? 'Không trích xuất được khuôn mặt.'));
                 }
             } catch (\Exception $e) {
-                return redirect()->back()->with('warning', 'Đã thêm đại biểu ' . $guest->full_name . ' NHƯNG lỗi kết nối Server AI (Port 8001 đang tắt).');
+                return redirect()->back()->with('warning', 'Đã lưu đại biểu & ảnh, NHƯNG lỗi kết nối Server AI (Port 8001 đang tắt).');
             }
         }
 
-        // 4. Nếu không tải ảnh lên, chỉ báo thêm thành công
-        return redirect()->back()->with('success', 'Đã thêm đại biểu ' . $guest->full_name . ' thành công! Vui lòng nạp ảnh nhận diện sau.');
+        return redirect()->back()->with('success', 'Đã thêm đại biểu ' . $guest->full_name . ' thành công! Vui lòng cập nhật ảnh nhận diện sau.');
     }
 
     public function globalSearch(Request $request)
@@ -645,5 +654,59 @@ class MeetingController extends Controller
 
         // Trả về trang trước đó kèm thông báo thành công
         return back()->with('success', 'Đã cập nhật cấu hình chống giả mạo (Yêu cầu chớp mắt)!');
+    }
+
+    /**
+     * API Cung cấp dữ liệu thống kê Real-time cho Dashboard
+     */
+    public function realtimeStats(Meeting $meeting)
+    {
+        // 1. Tính toán số lượng và Tỷ lệ
+        $total = $meeting->guests()->count();
+        $checkedIn = $meeting->guests()->where('is_attended', true)->count();
+        $percentage = $total > 0 ? round(($checkedIn / $total) * 100, 1) : 0;
+
+        // 2. Lấy danh sách những người đã check-in, sắp xếp theo thời gian
+        $checkins = $meeting->guests()
+            ->where('is_attended', true)
+            ->whereNotNull('updated_at')
+            ->orderBy('updated_at')
+            ->get();
+
+        // 3. Gom nhóm dữ liệu theo từng chu kỳ 10 phút (Tạo dữ liệu cho Biểu đồ)
+        // Ví dụ: Ai check-in lúc 14:03, 14:08 sẽ gom chung vào cột "14:00"
+        $groupedData = [];
+        
+        foreach ($checkins as $guest) {
+            // Lấy thời gian update và làm tròn phút xuống bội số của 10
+            $time = \Carbon\Carbon::parse($guest->updated_at)->timezone('Asia/Ho_Chi_Minh');
+            $minute = $time->format('i');
+            $roundedMinute = floor($minute / 10) * 10;
+            
+            $timeLabel = $time->format('H:') . str_pad($roundedMinute, 2, '0', STR_PAD_LEFT);
+            
+            if (!isset($groupedData[$timeLabel])) {
+                $groupedData[$timeLabel] = 0;
+            }
+            $groupedData[$timeLabel]++;
+        }
+
+        // Tách thành 2 mảng: Labels (Trục X) và Data (Trục Y) cho Chart.js
+        $chartLabels = array_keys($groupedData);
+        $chartData = array_values($groupedData);
+
+        // Nếu chưa có ai check-in, trả về biểu đồ trống an toàn
+        if (empty($chartLabels)) {
+            $chartLabels = [\Carbon\Carbon::now()->timezone('Asia/Ho_Chi_Minh')->format('H:i')];
+            $chartData = [0];
+        }
+
+        return response()->json([
+            'total' => $total,
+            'checked_in' => $checkedIn,
+            'percentage' => $percentage,
+            'chart_labels' => $chartLabels,
+            'chart_data' => $chartData
+        ]);
     }
 }

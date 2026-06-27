@@ -72,8 +72,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/meetings/{meeting}/save-design', [App\Http\Controllers\MeetingController::class, 'saveDesign'])->name('api.save_design');
     Route::get('/meetings/{meeting}/game', [MeetingController::class, 'game'])->name('meetings.game');
     Route::post('/meetings/{meeting}/toggle-liveness', [\App\Http\Controllers\MeetingController::class, 'toggleLiveness'])->name('meetings.toggle_liveness');
+    Route::put('/guests/{guest}', [GuestController::class, 'update'])->name('guests.update');
+    Route::delete('/guests/{guest}', [GuestController::class, 'destroy'])->name('guests.destroy');
+    Route::get('/api/meetings/{meeting}/realtime-stats', [\App\Http\Controllers\MeetingController::class, 'realtimeStats']);
+
+    // (Dành cho chức năng cập nhật ảnh nếu bạn chưa khai báo)
+    Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace'])->name('guests.update_face');
     // Quản lý Đại biểu
-    Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace']);
+    // Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace']);
 
     // Các API nội bộ
     Route::get('/start-ai-api', [MeetingController::class, 'startApiServer'])->name('api.start_server');

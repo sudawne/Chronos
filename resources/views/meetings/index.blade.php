@@ -151,30 +151,57 @@
     // 1. Logic lọc (Filter)
     function applyFilter(filterValue) {
         const cards = document.querySelectorAll('.meeting-card');
+        
         cards.forEach(card => {
+            // Xóa bộ đếm cũ nếu có để tránh kẹt hiệu ứng khi người dùng bấm liên tục
+            if (card.hideTimeout) clearTimeout(card.hideTimeout);
+            if (card.showTimeout) clearTimeout(card.showTimeout);
+
             if (filterValue === 'all' || card.getAttribute('data-status') === filterValue) {
+                // Hiển thị lại card
                 card.style.display = 'flex';
-                setTimeout(() => { card.style.opacity = '1'; card.style.transform = 'scale(1)'; }, 10);
+                // Delay 20ms để CSS nhận dạng display:flex trước khi kích hoạt hiệu ứng mờ
+                card.showTimeout = setTimeout(() => { 
+                    card.style.opacity = '1'; 
+                    card.style.transform = 'scale(1)'; 
+                }, 20);
             } else {
+                // Ẩn card đi
                 card.style.opacity = '0';
                 card.style.transform = 'scale(0.95)';
-                setTimeout(() => { card.style.display = 'none'; }, 300);
+                card.hideTimeout = setTimeout(() => { 
+                    card.style.display = 'none'; 
+                }, 300); // 300ms bằng thời gian transition CSS
             }
         });
     }
 
     function initFilters() {
         const btns = document.querySelectorAll('.filter-btn');
+        
         btns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                btns.forEach(b => {
+            // Xóa bỏ tất cả event listener cũ (Chống kẹt khi trang load lại cục bộ)
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+        });
+
+        // Gắn lại sự kiện click cho các nút mới
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault(); // Ngăn hành vi nhảy trang mặc định
+                
+                // 1. Reset CSS màu sắc của TẤT CẢ các nút về màu xám
+                document.querySelectorAll('.filter-btn').forEach(b => {
                     b.classList.remove('bg-[#5949be]', 'text-white', 'shadow-md', 'active');
                     b.classList.add('bg-white', 'text-gray-600');
                 });
-                btn.classList.remove('bg-white', 'text-gray-600');
-                btn.classList.add('bg-[#5949be]', 'text-white', 'shadow-md', 'active');
+                
+                // 2. Tô màu nút vừa được bấm
+                this.classList.remove('bg-white', 'text-gray-600');
+                this.classList.add('bg-[#5949be]', 'text-white', 'shadow-md', 'active');
 
-                applyFilter(btn.getAttribute('data-filter'));
+                // 3. Thực thi logic ẩn/hiện sự kiện
+                applyFilter(this.getAttribute('data-filter'));
             });
         });
     }
@@ -202,7 +229,7 @@
                     newStatus = 'ended';
                 }
 
-                // Nếu có sự chuyển đổi trạng thái thực tế
+                // Nếu thời gian thay đổi làm đổi trạng thái
                 if (currentStatus !== newStatus) {
                     hasChanges = true;
                     card.setAttribute('data-status', newStatus);
@@ -210,29 +237,26 @@
                 }
             });
 
-            // Nếu trạng thái đổi, render lại bộ lọc đang được kích hoạt
+            // Nếu trạng thái đổi, áp dụng lại đúng cái bộ lọc đang bấm
             if (hasChanges) {
                 const activeFilterBtn = document.querySelector('.filter-btn.active');
                 if (activeFilterBtn) applyFilter(activeFilterBtn.getAttribute('data-filter'));
             }
         }
 
-        // Chạy ngầm mỗi 10 giây
+        // Cập nhật ngầm mỗi 10 giây
         window.meetingStatusInterval = setInterval(updateStatuses, 10000);
     }
 
-    // Hàm tô màu, ẩn hiện DOM bằng Javascript
     function updateCardVisuals(card, status) {
         const badge = card.querySelector('.status-badge');
         const pulse = card.querySelector('.pulse-icon');
 
-        // Xóa sạch toàn bộ class cũ trên thẻ
         card.classList.remove(
             'border-emerald-400', 'shadow-[0_0_15px_rgba(16,185,129,0.15)]', 'ring-1', 'ring-emerald-400',
             'hover:border-[#5949be]/40', 'hover:shadow-lg',
             'bg-gray-50/50', 'opacity-80', 'hover:opacity-100', 'grayscale-[0.2]'
         );
-        // Xóa sạch class cũ trên badge
         badge.className = 'status-badge px-3 py-1 font-bold text-[11px] uppercase tracking-wider rounded-lg border';
 
         if (status === 'ongoing') {
@@ -253,18 +277,22 @@
         }
     }
 
-    // Khởi chạy khi DOM sẵn sàng
-    document.addEventListener('DOMContentLoaded', () => {
+    // Bọc hàm khởi tạo để gọi mọi lúc
+    function initAll() {
         initFilters();
         startRealTimeUpdates();
-    });
+    }
 
-    // Reset lại interval khi chuyển trang bằng Swup
+    // Kiểm tra DOM xem đã render xong chưa (Tránh lỗi script chạy quá sớm hoặc quá trễ)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+        initAll();
+    }
+
+    // Hỗ trợ thư viện Swup (nếu có dùng để chuyển trang mượt)
     if (typeof swup !== 'undefined') {
-        swup.hooks.on('page:view', () => {
-            initFilters();
-            startRealTimeUpdates();
-        });
+        swup.hooks.on('page:view', initAll);
     }
 </script>
 @endsection

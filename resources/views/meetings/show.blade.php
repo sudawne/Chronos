@@ -39,7 +39,6 @@
                         <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Điểm danh</span>
                     </div>
                     
-                    {{-- [ĐÃ SỬA] Nút Webcam được chuyển thành Button để mở Modal Cổng Phụ --}}
                     <button type="button" onclick="openGateModal()" 
                        class="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-600/20 transition-all duration-300 active:scale-95">
                         <span class="material-symbols-outlined text-[18px]">photo_camera</span>
@@ -149,7 +148,6 @@
         </div>
 
         {{-- Config Card --}}
-        {{-- Config Card --}}
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 hover:shadow-md transition-shadow duration-300 flex items-start gap-5 relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform duration-500"></div>
             <div class="w-14 h-14 rounded-2xl bg-emerald-100/80 flex items-center justify-center shrink-0 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300">
@@ -169,7 +167,6 @@
                         <span class="text-[11px] text-slate-500">Yêu cầu chớp mắt</span>
                     </div>
                     
-                    {{-- Form toggle trạng thái --}}
                     <form action="{{ route('meetings.toggle_liveness', $meeting->id) ?? '#' }}" method="POST">
                         @csrf
                         <button type="submit" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none transition-all duration-300">
@@ -182,6 +179,54 @@
             </div>
         </div>
     </div>
+
+    {{-- THỐNG KÊ REALTIME SECTION (MỚI THÊM) --}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {{-- Cột 1: Chỉ số tổng quan (Tỷ lệ & Số lượng) --}}
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col justify-center relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full opacity-50 blur-2xl"></div>
+            
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                Tiến độ Check-in
+            </h3>
+
+            <div class="flex items-end gap-3 mb-2">
+                <span class="text-5xl font-black text-slate-800" id="rt-checked-in">0</span>
+                <span class="text-lg font-medium text-slate-400 mb-1">/ <span id="rt-total-guests">{{ $meeting->guests->count() }}</span> đại biểu</span>
+            </div>
+
+            <div class="flex items-center justify-between text-sm font-bold mb-2 mt-4">
+                <span class="text-slate-600">Tỷ lệ tham dự</span>
+                <span class="text-emerald-600 text-lg" id="rt-percentage">0%</span>
+            </div>
+            
+            {{-- Thanh Progress Bar --}}
+            <div class="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden shadow-inner">
+                <div id="rt-progress-bar" class="bg-gradient-to-r from-emerald-400 to-emerald-600 h-3 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+            </div>
+            <p class="text-xs text-slate-400 font-medium mt-1">Cập nhật tự động trực tiếp từ cổng AI</p>
+        </div>
+
+        {{-- Cột 2 & 3: Biểu đồ lưu lượng qua cổng --}}
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">monitoring</span>
+                    Lưu lượng người qua cổng (Theo thời gian)
+                </h3>
+                <span class="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg border border-indigo-100">Live</span>
+            </div>
+            <div class="relative h-[200px] w-full">
+                <canvas id="trafficChart"></canvas>
+            </div>
+        </div>
+    </div>
+    {{-- KẾT THÚC KHU VỰC THỐNG KÊ --}}
 
     {{-- Guest List Section --}}
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
@@ -220,7 +265,8 @@
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Chức vụ</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Vị trí ngồi</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Dữ liệu AI</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Trạng thái</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Trạng thái</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Hành động</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -283,7 +329,7 @@
                                 @endif
                             </td>
                             
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-6 py-4 text-center">
                                 @if($guest->is_attended)
                                     <span class="inline-flex items-center justify-center px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-bold uppercase tracking-wide shadow-sm shadow-emerald-500/20">
                                         Đã Check-in
@@ -294,10 +340,35 @@
                                     </span>
                                 @endif
                             </td>
+
+                            {{-- CỘT HÀNH ĐỘNG --}}
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    {{-- Nút Sửa --}}
+                                    @php
+                                        $avatarUrl = $guest->image_filename 
+                                            ? asset("storage/meetings/{$meeting->id}/faces/{$guest->image_filename}") 
+                                            : "https://ui-avatars.com/api/?name=".urlencode($guest->full_name)."&color=4f46e5&background=e0e7ff&bold=true&size=256";
+                                    @endphp
+                                    <button type="button" onclick="openEditGuestModal({{ $guest->id }}, '{{ addslashes($guest->full_name) }}', '{{ addslashes($guest->email) }}', '{{ addslashes($guest->position) }}', '{{ addslashes($guest->seat_location) }}', '{{ $avatarUrl }}')" 
+                                            class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white flex items-center justify-center transition-colors" title="Sửa thông tin">
+                                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    </button>
+                                    
+                                    {{-- Nút Xoá --}}
+                                    <form action="{{ route('guests.destroy', $guest->id) ?? '#' }}" method="POST" class="inline-block" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đại biểu {{ addslashes($guest->full_name) }} không? Mọi dữ liệu khuôn mặt liên quan sẽ bị xóa.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="Xóa đại biểu">
+                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-16 text-center">
+                            <td colspan="7" class="px-6 py-16 text-center">
                                 <div class="flex flex-col items-center justify-center text-slate-400">
                                     <div class="w-16 h-16 bg-white rounded-full border border-slate-100 shadow-sm flex items-center justify-center mb-4">
                                         <span class="material-symbols-outlined text-[32px] opacity-50">group_off</span>
@@ -333,8 +404,8 @@
     </div>
 </div>
 
-{{-- [ĐÃ THÊM] MODAL CHỌN CỔNG PHỤ AI --}}
-<div id="gate-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center">
+{{-- MODAL CHỌN CỔNG PHỤ AI (Đã sửa z-index) --}}
+<div id="gate-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center">
     <div id="gate-modal-box" class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl transform scale-95 transition-all duration-300 relative border border-slate-100">
         <button onclick="closeGateModal()" class="absolute top-6 right-6 text-slate-400 hover:text-rose-500 transition-colors w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 hover:bg-rose-50">
             <span class="material-symbols-outlined text-[20px]">close</span>
@@ -343,8 +414,7 @@
         <h2 class="text-2xl font-extrabold text-slate-800 mb-2">Chọn Cổng Điểm Danh</h2>
         <p class="text-sm text-slate-500 mb-6">Hệ thống hỗ trợ nhiều cổng quét song song. Hãy chọn cổng muốn mở trên thiết bị này.</p>
 
-        <div class="space-y-3 mb-6" id="gate-list">
-            </div>
+        <div class="space-y-3 mb-6" id="gate-list"></div>
 
         <div class="pt-5 border-t border-slate-100 mt-2">
             <label class="text-xs font-bold text-slate-500 uppercase mb-2 block tracking-wider">Hoặc tạo tên cổng mới</label>
@@ -356,11 +426,11 @@
     </div>
 </div>
 
-{{-- MODAL CẬP NHẬT ẢNH KHUÔN MẶT --}}
-<div id="face-modal-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] hidden items-center justify-center opacity-0 transition-opacity duration-300">
+{{-- MODAL CẬP NHẬT ẢNH KHUÔN MẶT (Đã sửa z-index) --}}
+<div id="face-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden items-center justify-center opacity-0 transition-opacity duration-300">
     <div id="face-modal-box" class="bg-white rounded-3xl w-full max-w-lg mx-4 shadow-2xl transform scale-95 transition-all duration-300 overflow-hidden relative border border-slate-100">
         
-        <div id="modal-loading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
+        <div id="modal-loading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-[10000] hidden flex-col items-center justify-center">
             <span class="material-symbols-outlined text-indigo-600 text-4xl animate-spin">model_training</span>
             <p class="font-bold text-indigo-600 mt-3 animate-pulse">Đang xử lý dữ liệu AI...</p>
         </div>
@@ -401,11 +471,11 @@
     </div>
 </div>
 
-{{-- MODAL THÊM ĐẠI BIỂU MỚI --}}
-<div id="add-guest-modal-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] hidden items-center justify-center opacity-0 transition-opacity duration-300 overflow-y-auto">
+{{-- MODAL THÊM ĐẠI BIỂU MỚI (Đã sửa z-index) --}}
+<div id="add-guest-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden items-center justify-center opacity-0 transition-opacity duration-300 overflow-y-auto">
     <div id="add-guest-modal-box" class="bg-white rounded-3xl w-full max-w-2xl mx-4 my-8 shadow-2xl transform scale-95 transition-all duration-300 relative border border-slate-100">
         
-        <div id="add-guest-loading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center rounded-3xl">
+        <div id="add-guest-loading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-[10000] hidden flex-col items-center justify-center rounded-3xl">
             <span class="material-symbols-outlined text-indigo-600 text-4xl animate-spin">model_training</span>
             <p class="font-bold text-indigo-600 mt-3 animate-pulse">Đang thêm đại biểu & phân tích AI...</p>
         </div>
@@ -472,13 +542,92 @@
     </div>
 </div>
 
+{{-- MODAL CHỈNH SỬA ĐẠI BIỂU --}}
+<div id="edit-guest-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden items-center justify-center opacity-0 transition-opacity duration-300 overflow-y-auto">
+    <div id="edit-guest-modal-box" class="bg-white rounded-3xl w-full max-w-3xl mx-4 my-8 shadow-2xl transform scale-95 transition-all duration-300 relative border border-slate-100">
+        
+        <div id="edit-guest-loading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-[10000] hidden flex-col items-center justify-center rounded-3xl">
+            <span class="material-symbols-outlined text-indigo-600 text-4xl animate-spin">model_training</span>
+            <p class="font-bold text-indigo-600 mt-3 animate-pulse">Đang lưu & Phân tích AI...</p>
+        </div>
+
+        <div class="p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-600">manage_accounts</span>
+                    Chỉnh sửa đại biểu
+                </h3>
+                <button type="button" onclick="closeEditGuestModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-slate-100 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            
+            <form id="edit-guest-form" action="" method="POST" enctype="multipart/form-data" onsubmit="showModalLoading('edit-guest-loading')">
+                @csrf
+                @method('PUT')
+                
+                <div class="flex flex-col md:flex-row gap-6 mb-2">
+                    {{-- CỘT TRÁI: Nhập văn bản --}}
+                    <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-5 content-start">
+                        <div class="col-span-1 sm:col-span-2 space-y-1.5">
+                            <label class="text-sm font-semibold text-slate-700">Họ và Tên <span class="text-red-500">*</span></label>
+                            <input type="text" id="edit_full_name" name="full_name" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-colors">
+                        </div>
+
+                        <div class="col-span-1 sm:col-span-2 space-y-1.5">
+                            <label class="text-sm font-semibold text-slate-700">Email (Tùy chọn)</label>
+                            <input type="email" id="edit_email" name="email" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-colors">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-semibold text-slate-700">Chức vụ</label>
+                            <input type="text" id="edit_position" name="position" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-colors">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-semibold text-slate-700">Vị trí ghế</label>
+                            <input type="text" id="edit_seat_location" name="seat_location" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-colors">
+                        </div>
+                    </div>
+
+                    {{-- CỘT PHẢI: Khung Review Ảnh --}}
+                    <div class="w-full md:w-52 shrink-0 flex flex-col">
+                        <label class="text-sm font-semibold text-slate-700 mb-1.5">Ảnh nhận diện AI</label>
+                        <label for="edit_file_anh" class="flex flex-col items-center justify-center w-full aspect-[3/4] border-2 border-indigo-200 border-dashed rounded-2xl cursor-pointer bg-slate-50 hover:border-indigo-400 transition-all group relative overflow-hidden shadow-sm">
+                            
+                            {{-- Lớp phủ Hover báo hiệu đổi ảnh --}}
+                            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity z-20 flex flex-col items-center justify-center text-white">
+                                <span class="material-symbols-outlined text-3xl mb-1">cameraswitch</span>
+                                <span class="text-xs font-bold">Đổi ảnh khác</span>
+                            </div>
+
+                            {{-- Ảnh hiển thị gốc --}}
+                            <img id="edit-guest-preview" src="" class="absolute inset-0 w-full h-full object-cover z-10" />
+                            
+                            <input id="edit_file_anh" name="file_anh" type="file" class="sr-only" accept="image/jpeg, image/png" onchange="previewImage(this, null, 'edit-guest-preview')" />
+                        </label>
+                        <p class="text-[11px] text-slate-400 mt-2 text-center leading-tight">Nếu chọn ảnh mới, hệ thống sẽ xóa ảnh cũ và nạp lại khuôn mặt.</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 border-t border-slate-100 pt-5 mt-4">
+                    <button type="button" onclick="closeEditGuestModal()" class="px-5 py-2.5 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors">Hủy</button>
+                    <button type="submit" class="px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-600/20 flex items-center gap-2 hover:-translate-y-0.5 transition-all">
+                        <span class="material-symbols-outlined text-[18px]">save</span> Cập nhật
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     // ==========================================
     // LOGIC CHO MODAL CỔNG PHỤ (GATE SELECTION)
     // ==========================================
     let checkGateInterval;
     const meetingId = {{ $meeting->id }};
-    const gateListNames = ['Cổng 1', 'Cổng 2', 'Cổng 3', 'Cổng 4']; // Bạn có thể thêm Cổng 5, 6 tùy ý
+    const gateListNames = ['Cổng 1', 'Cổng 2', 'Cổng 3', 'Cổng 4'];
 
     function openGateModal() {
         const backdrop = document.getElementById('gate-modal-backdrop');
@@ -490,13 +639,12 @@
             box.classList.remove('scale-95');
         }, 10);
         
-        // Gọi API load trạng thái cổng ngay khi mở và sau đó lặp lại mỗi 2.5s
         fetchActiveGates();
         checkGateInterval = setInterval(fetchActiveGates, 2500);
     }
 
     function closeGateModal() {
-        clearInterval(checkGateInterval); // Dừng quét khi đóng modal
+        clearInterval(checkGateInterval); 
         const backdrop = document.getElementById('gate-modal-backdrop');
         const box = document.getElementById('gate-modal-box');
 
@@ -505,7 +653,6 @@
         setTimeout(() => backdrop.classList.add('hidden'), 300);
     }
 
-    // Hàm gọi API về Laravel để lấy các cổng đang "Thức" (Gửi heartbeat)
     function fetchActiveGates() {
         fetch(`/api/meetings/${meetingId}/active-gates`)
             .then(res => res.json())
@@ -539,7 +686,6 @@
             .catch(err => console.log('Đang load trạng thái cổng...'));
     }
 
-    // Hàm mở tên cổng tuỳ chỉnh
     function openCustomGate() {
         const name = document.getElementById('custom-gate-name').value.trim();
         if(name) {
@@ -551,8 +697,52 @@
 
 
     // ==========================================
-    // LOGIC CHO CÁC MODAL KHÁC CỦA BẠN (GIỮ NGUYÊN)
+    // LOGIC CHO CÁC MODAL KHÁC
     // ==========================================
+
+    // Cập nhật tham số nhận thêm avatarUrl
+    function openEditGuestModal(guestId, fullName, email, position, seatLocation, avatarUrl) {
+        const backdrop = document.getElementById('edit-guest-modal-backdrop');
+        const box = document.getElementById('edit-guest-modal-box');
+        const form = document.getElementById('edit-guest-form');
+        
+        form.action = `/guests/${guestId}`; 
+        
+        document.getElementById('edit_full_name').value = fullName;
+        document.getElementById('edit_email').value = email;
+        document.getElementById('edit_position').value = position;
+        document.getElementById('edit_seat_location').value = seatLocation;
+
+        // Reset ô upload file ẩn
+        document.getElementById('edit_file_anh').value = '';
+        
+        // Gắn ảnh hiện tại vào khu vực Preview bên phải
+        const preview = document.getElementById('edit-guest-preview');
+        preview.src = avatarUrl;
+
+        backdrop.classList.remove('hidden');
+        backdrop.classList.add('flex');
+        setTimeout(() => {
+            backdrop.classList.remove('opacity-0');
+            box.classList.remove('scale-95');
+            box.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeEditGuestModal() {
+        const backdrop = document.getElementById('edit-guest-modal-backdrop');
+        const box = document.getElementById('edit-guest-modal-box');
+        
+        backdrop.classList.add('opacity-0');
+        box.classList.remove('scale-100');
+        box.classList.add('scale-95');
+        setTimeout(() => {
+            backdrop.classList.add('hidden');
+            backdrop.classList.remove('flex');
+        }, 300); 
+    }
+
+
     function openFaceModal(guestId, guestName) {
         const backdrop = document.getElementById('face-modal-backdrop');
         const box = document.getElementById('face-modal-box');
@@ -641,5 +831,94 @@
         document.getElementById(elementId).classList.remove('hidden');
         document.getElementById(elementId).classList.add('flex');
     }
+
+    //Thống kê
+    // ==========================================
+    // LOGIC THỐNG KÊ REALTIME (CHART.JS & AJAX)
+    // ==========================================
+    let trafficChart;
+
+    function initTrafficChart() {
+        const ctx = document.getElementById('trafficChart').getContext('2d');
+        
+        // Cấu hình mảng màu Gradient cho biểu đồ
+        let gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)'); // Indigo-600
+        gradient.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
+
+        trafficChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Nhãn thời gian (VD: 14:00, 14:10)
+                datasets: [{
+                    label: 'Số lượt check-in',
+                    data: [],
+                    borderColor: '#4f46e5', // Màu viền
+                    backgroundColor: gradient, // Màu nền gradient
+                    borderWidth: 3,
+                    tension: 0.4, // Làm cong mượt đường line
+                    fill: true,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#4f46e5',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        padding: 10,
+                        titleFont: { family: 'Plus Jakarta Sans', size: 13 },
+                        bodyFont: { family: 'Plus Jakarta Sans', size: 14, weight: 'bold' },
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, font: { family: 'Plus Jakarta Sans' } },
+                        grid: { borderDash: [5, 5], color: '#f1f5f9' }
+                    },
+                    x: {
+                        ticks: { font: { family: 'Plus Jakarta Sans' } },
+                        grid: { display: false }
+                    }
+                },
+                animation: { duration: 800 }
+            }
+        });
+    }
+
+    function fetchRealtimeStats() {
+        fetch(`/api/meetings/${meetingId}/realtime-stats`)
+            .then(res => res.json())
+            .then(data => {
+                // 1. Cập nhật Số liệu tổng quan
+                document.getElementById('rt-checked-in').innerText = data.checked_in;
+                document.getElementById('rt-total-guests').innerText = data.total;
+                document.getElementById('rt-percentage').innerText = data.percentage + '%';
+                document.getElementById('rt-progress-bar').style.width = data.percentage + '%';
+
+                // 2. Cập nhật Biểu đồ
+                if (trafficChart) {
+                    trafficChart.data.labels = data.chart_labels;
+                    trafficChart.data.datasets[0].data = data.chart_data;
+                    trafficChart.update('none'); // Update 'none' để không bị nháy biểu đồ
+                }
+            })
+            .catch(err => console.error('Lỗi tải thống kê realtime:', err));
+    }
+
+    // Khởi chạy khi trang Load xong
+    document.addEventListener('DOMContentLoaded', () => {
+        initTrafficChart();
+        fetchRealtimeStats(); // Gọi lần đầu ngay lập tức
+        setInterval(fetchRealtimeStats, 3000); // Tự động quét cập nhật mỗi 3 giây
+    });
 </script>
 @endsection
