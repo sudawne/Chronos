@@ -6,7 +6,7 @@
     <title>Welcome Kiosk AI | {{ $meeting->title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&family=Dancing+Script:wght@600;700&family=Montserrat:wght@400;700;900&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     @php
         $config = $meeting->welcome_config ? json_decode($meeting->welcome_config, true) : [];
         $bgColor = $config['bg_color'] ?? '#0f172a';
@@ -63,7 +63,7 @@
                 @endphp
 
                 @if(($el['type'] ?? 'text') == 'text')
-                    <div id="{{ $el['id'] }}" class="designed-element" style="left: {{ $ex }}px; top: {{ $ey }}px; color: {{ $el['color'] ?? '#ffffff' }}; font-size: {{ $el['size'] ?? 24 }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; transform-origin: left center;">{{ $el['content'] ?? $el['text'] }}</div>
+                    <div id="{{ $el['id'] }}" class="designed-element" style="left: {{ $ex }}px; top: {{ $ey }}px; color: {{ $el['color'] ?? '#ffffff' }}; font-size: {{ $el['size'] ?? 24 }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; font-family: {{ $el['fontFamily'] ?? '\'Plus Jakarta Sans\', sans-serif' }}; transform-origin: left center;">{{ $el['content'] ?? $el['text'] }}</div>
                 @elseif(($el['type'] ?? '') == 'image')
                     <img id="{{ $el['id'] }}" src="{{ $el['src'] }}" class="designed-element" style="left: {{ $ex }}px; top: {{ $ey }}px; width: {{ $el['width'] }}px; max-width: calc({{ $ARTBOARD_W }}px - {{ $ex }}px);">
                 @elseif(($el['type'] ?? '') == 'avatar')

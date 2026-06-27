@@ -16,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&family=Dancing+Script:wght@600;700&family=Montserrat:wght@400;700;900&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
 
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
@@ -157,7 +158,7 @@
                 @foreach($elements as $el)
                     @if(($el['type'] ?? 'text') == 'text')
                         <div id="{{ $el['id'] }}" class="draggable" data-type="text"
-                             style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; color: {{ $el['color'] }}; font-size: {{ $el['size'] }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }};">
+                             style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; color: {{ $el['color'] }}; font-size: {{ $el['size'] }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; font-family: {{ $el['fontFamily'] ?? '\'Plus Jakarta Sans\', sans-serif' }};">
                             {{ $el['content'] ?? $el['text'] }}
                         </div>
                     @elseif(($el['type'] ?? '') == 'image')
@@ -191,6 +192,18 @@
                         <label class="text-[13px] font-semibold block mb-1">Nội dung</label>
                         <textarea id="prop-text" rows="2" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm outline-none resize-none"></textarea>
                     </div>
+
+                    <div>
+                        <label class="text-[13px] font-semibold block mb-1">Phông chữ (Font)</label>
+                        <select id="prop-font" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm outline-none">
+                            <option value="'Plus Jakarta Sans', sans-serif">Jakarta Sans (Mặc định)</option>
+                            <option value="'Be Vietnam Pro', sans-serif">Be Vietnam Pro (Hiện đại)</option>
+                            <option value="'Montserrat', sans-serif">Montserrat (Tiêu đề cứng)</option>
+                            <option value="'Playfair Display', serif">Playfair Display (Sang trọng)</option>
+                            <option value="'Dancing Script', cursive">Dancing Script (Viết tay)</option>
+                        </select>
+                    </div>
+
                     <div class="flex gap-4">
                         <div class="flex-1">
                             <label class="text-[13px] font-semibold block mb-1">Màu sắc</label>
@@ -373,6 +386,16 @@
                 document.getElementById('prop-size').value = parseInt(window.getComputedStyle(el).fontSize);
                 document.getElementById('prop-weight').value = window.getComputedStyle(el).fontWeight;
                 document.getElementById('prop-text').disabled = (el.id === 'el_name' || el.id === 'el_position' || el.id === 'el_seat');
+
+                let currentFont = window.getComputedStyle(el).fontFamily;
+                let fontSelect = document.getElementById('prop-font');
+                for(let i = 0; i < fontSelect.options.length; i++) {
+                    let fontName = fontSelect.options[i].value.split(',')[0].replace(/['"]/g, ''); // Tách lấy tên font
+                    if(currentFont.includes(fontName)) {
+                        fontSelect.selectedIndex = i;
+                        break;
+                    }
+                }
             } 
             else if (el.dataset.type === 'avatar') {
                 document.getElementById('prop-avatar-panel').classList.remove('hidden');
@@ -406,8 +429,12 @@
         document.getElementById('prop-color').addEventListener('input', (e) => { if(selectedElement) selectedElement.style.color = e.target.value; });
         document.getElementById('prop-size').addEventListener('input', (e) => { if(selectedElement) selectedElement.style.fontSize = `${e.target.value}px`; });
         document.getElementById('prop-weight').addEventListener('change', (e) => { if(selectedElement) selectedElement.style.fontWeight = e.target.value; });
+        document.getElementById('prop-font').addEventListener('change', (e) => { 
+            if(selectedElement && selectedElement.dataset.type === 'text') {
+                selectedElement.style.fontFamily = e.target.value; 
+            }
+        });
 
-        // --- SỰ KIỆN ĐIỀU CHỈNH AVATAR [ĐÃ FIX CHUẨN] ---
         document.getElementById('prop-avatar-size').addEventListener('input', (e) => { 
             if(selectedElement && selectedElement.dataset.type === 'avatar') {
                 const size = `${e.target.value}px`;
@@ -446,6 +473,7 @@
                     data.color = rgbToHex(window.getComputedStyle(el).color);
                     data.size = parseInt(window.getComputedStyle(el).fontSize);
                     data.fontWeight = window.getComputedStyle(el).fontWeight;
+                    data.fontFamily = window.getComputedStyle(el).fontFamily;
                 } else if (type === 'image') {
                     data.src = el.querySelector('img').src;
                     data.width = parseInt(window.getComputedStyle(el).width);
@@ -497,7 +525,7 @@
                 if (data.elements) {
                     data.elements.forEach(el => {
                         if (el.type === 'text') {
-                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color || '#ffffff'}; font-size: ${el.size}px; font-weight: ${el.fontWeight || 'normal'}; white-space: nowrap;">${el.content || el.text || ''}</div>`;
+                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color || '#ffffff'}; font-size: ${el.size}px; font-weight: ${el.fontWeight || 'normal'}; font-family: ${el.fontFamily || "'Plus Jakarta Sans', sans-serif"}; white-space: nowrap;">${el.content || el.text || ''}</div>`;
                         } else if (el.type === 'image') {
                             innerHtml += `<img src="${el.src}" style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; height: auto;">`;
                         } else if (el.type === 'avatar') {
@@ -566,6 +594,7 @@
                         el.style.color = elData.color;
                         el.style.fontSize = elData.size + 'px';
                         el.style.fontWeight = elData.fontWeight;
+                        el.style.fontFamily = elData.fontFamily || "'Plus Jakarta Sans', sans-serif";
                         el.innerText = elData.content;
                     } else if(elData.type === 'image') {
                         const img = document.createElement('img');

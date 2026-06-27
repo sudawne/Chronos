@@ -1,64 +1,95 @@
 @extends('layouts.app')
 
-@section('title', 'Cấp quyền tài khoản')
+@section('title', 'Phân quyền Cá nhân | CHRONOS')
 
 @section('content')
-<div class="max-w-4xl mx-auto p-4 lg:p-8">
+<style>
+    /* CSS Tùy chỉnh Checkbox giống hệt Base.vn */
+    .base-checkbox {
+        appearance: none;
+        width: 20px; height: 20px;
+        border: 1px solid #d1d5db; border-radius: 4px;
+        background-color: #fff; position: relative; cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .base-checkbox:hover { border-color: #22c55e; }
+    .base-checkbox:checked { background-color: #22c55e; border-color: #22c55e; }
+    .base-checkbox:checked::after {
+        content: ''; position: absolute; left: 6px; top: 2px;
+        width: 6px; height: 11px;
+        border: solid white; border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+    .base-checkbox:focus { outline: none; box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2); }
+</style>
+
+<div class="px-4 lg:px-8 pb-12 min-h-screen bg-white">
     
-    <div class="mb-6 flex items-center justify-between">
-        <a href="{{ route('admin.users.index') }}" class="flex items-center gap-1 text-slate-500 hover:text-indigo-600 font-semibold transition-colors">
-            <span class="material-symbols-outlined">arrow_back</span> Quay lại danh sách
-        </a>
+    <div class="mb-6 pt-6 flex items-center justify-between border-b border-gray-100 pb-4">
+        <div>
+            <a href="{{ route('admin.users.index') }}" class="text-xs text-gray-400 hover:text-purple-600 mb-2 inline-flex items-center gap-1 font-medium">
+                <span class="material-symbols-outlined text-[14px]">arrow_back</span> Quay lại danh sách
+            </a>
+            <h1 class="text-xl font-bold text-gray-800 uppercase tracking-wide flex items-center gap-3">
+                <img src="{{ $user->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode($user->name) }}" class="w-8 h-8 rounded border border-gray-200">
+                Phân quyền: {{ $user->name }}
+            </h1>
+            <p class="text-gray-500 text-sm mt-1">Gán chức vụ (Quyền to) và cấp các tính năng bổ sung (Quyền nhỏ) cho nhân sự này.</p>
+        </div>
+        
+        <button type="button" onclick="document.getElementById('user-permission-form').submit();" class="px-6 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors shadow-sm text-sm">
+            Lưu thay đổi
+        </button>
     </div>
 
-    <div class="bg-white dark:bg-[#151A2D] rounded-3xl shadow-sm border border-slate-200 dark:border-white/5 p-8">
+    <form id="user-permission-form" action="{{ route('admin.users.update', $user->id) }}" method="POST">
+        @csrf @method('PUT')
         
-        <div class="flex items-center gap-4 mb-8 pb-8 border-b border-slate-100 dark:border-white/5">
-            <img src="{{ $user->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode($user->name) }}" class="w-16 h-16 rounded-full object-cover border-2 border-indigo-100">
-            <div>
-                <h2 class="text-2xl font-black text-slate-800 dark:text-white">{{ $user->name }}</h2>
-                <p class="text-slate-500">{{ $user->email }}</p>
-            </div>
+        {{-- PHẦN 1: QUYỀN TO (CHỨC VỤ) --}}
+        <div class="mb-10">
+            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 border-l-4 border-purple-500 pl-3">
+                1. Gán Chức Vụ (Role)
+            </h3>
+            <table class="w-full text-left border-collapse">
+                <tbody class="divide-y divide-gray-100">
+                    @foreach($roles as $role)
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="py-4 pr-6 w-1/2">
+                            <div class="text-[14px] font-bold text-gray-800 mb-0.5 uppercase">{{ $role->name }}</div>
+                            <div class="text-[12px] text-gray-400">Áp dụng bộ phân quyền mặc định của nhóm {{ $role->name }}</div>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <input type="checkbox" name="roles[]" value="{{ $role->name }}" {{ $user->hasRole($role->name) ? 'checked' : '' }} class="base-checkbox inline-block">
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
 
-        <form action="{{ route('admin.users.update', $user->id) }}" method="POST">
-            @csrf @method('PUT')
+        {{-- PHẦN 2: QUYỀN NHỎ (QUYỀN LẺ TRỰC TIẾP) --}}
+        <div>
+            <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2 border-l-4 border-green-500 pl-3">
+                2. Cấp thêm tính năng lẻ (Direct Permissions)
+            </h3>
+            <p class="text-[12px] text-gray-400 mb-4 pl-4">Nếu tính năng đã được bao gồm trong Chức vụ ở trên, bạn không cần phải tích thêm ở đây.</p>
             
-            {{-- CHỌN NHÓM CHỨC VỤ --}}
-            <h3 class="text-lg font-bold text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2 uppercase tracking-wide">
-                <span class="material-symbols-outlined">badge</span>
-                1. Gán Chức vụ (Roles)
-            </h3>
-            <div class="flex flex-wrap gap-4 mb-10 bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-500/20">
-                @foreach($roles as $role)
-                <label class="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" name="roles[]" value="{{ $role->name }}" {{ $user->hasRole($role->name) ? 'checked' : '' }} class="w-5 h-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500 cursor-pointer">
-                    <span class="text-sm font-black text-amber-800 dark:text-amber-200">{{ $role->name }}</span>
-                </label>
-                @endforeach
-            </div>
-
-            {{-- CẤP QUYỀN RIÊNG LẺ --}}
-            <h3 class="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-2 uppercase tracking-wide">
-                <span class="material-symbols-outlined">verified_user</span>
-                2. Cấp thêm tính năng lẻ (Trực tiếp)
-            </h3>
-            <p class="text-xs text-slate-500 mb-4">Các tính năng dưới đây nếu đã được cấp thông qua "Chức vụ" ở trên thì bạn không cần phải tích lại nữa.</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 dark:bg-[#1A2235] p-5 rounded-2xl border border-slate-200 dark:border-white/5">
-                @foreach($permissions as $permission)
-                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-transparent hover:border-indigo-200 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-sm">
-                    <input type="checkbox" name="permissions[]" value="{{ $permission->name }}" {{ $user->hasDirectPermission($permission->name) ? 'checked' : '' }} class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
-                    <span class="text-sm font-bold text-slate-700 dark:text-slate-200">{{ $permission->name }}</span>
-                </label>
-                @endforeach
-            </div>
-
-            <div class="mt-8 flex justify-end">
-                <button type="submit" class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[20px]">save</span> Lưu thay đổi
-                </button>
-            </div>
-        </form>
-    </div>
+            <table class="w-full text-left border-collapse border-t border-gray-100">
+                <tbody class="divide-y divide-gray-100">
+                    @foreach($permissions as $permission)
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="py-4 pr-6 w-1/2">
+                            <div class="text-[14px] font-bold text-gray-700 mb-0.5">{{ $permission->name }}</div>
+                            <div class="text-[12px] text-gray-400">Quyền truy cập độc lập vào hệ thống</div>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <input type="checkbox" name="permissions[]" value="{{ $permission->name }}" {{ $user->hasDirectPermission($permission->name) ? 'checked' : '' }} class="base-checkbox inline-block">
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </form>
 </div>
 @endsection
