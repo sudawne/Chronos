@@ -453,5 +453,66 @@
             if(overlay) overlay.addEventListener('click', toggleMobileMenu);
         });
     </script>
+
+    //Thông báo
+    <!-- THƯ VIỆN SWEETALERT2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- CẤU HÌNH THÔNG BÁO GLOBAL -->
+    <script>
+        // 1. Cấu hình Toast trượt từ góc phải (Dành cho báo thành công/lỗi)
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        // 2. Bắt các Session từ Laravel Controller và bắn Toast
+        @if(session('success'))
+            Toast.fire({ icon: 'success', title: '{!! session('success') !!}' });
+        @endif
+
+        @if(session('error'))
+            Toast.fire({ icon: 'error', title: '{!! session('error') !!}' });
+        @endif
+
+        @if(session('warning'))
+            Toast.fire({ icon: 'warning', title: '{!! session('warning') !!}' });
+        @endif
+
+        // 3. Hàm Xác nhận thông minh (Dành cho các nút Xóa / Gửi Mail)
+        function confirmAction(event, title, text = 'Hành động này không thể hoàn tác!') {
+            event.preventDefault(); // Chặn form submit ngay lập tức
+            const form = event.target; 
+
+            Swal.fire({
+                title: title,
+                text: text,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5', // Màu Indigo 600
+                cancelButtonColor: '#f43f5e', // Màu Rose 500
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy',
+                backdrop: `rgba(15, 23, 42, 0.5)` // Làm mờ nền cực đẹp
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Hiển thị loading xoay xoay sau khi bấm xác nhận
+                    Swal.fire({
+                        title: 'Đang xử lý...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+                    form.submit(); // Cho phép form tiếp tục gửi đi
+                }
+            });
+        }
+    </script>
 </body>
 </html>

@@ -123,8 +123,8 @@
                         <span class="material-symbols-outlined text-[20px]">edit</span>
                     </a>
 
-                    <form action="{{ route('meetings.destroy', $meeting->id) }}" method="POST" onsubmit="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn xóa sự kiện này và toàn bộ dữ liệu khuôn mặt liên quan không?')" class="inline m-0">
-                        @csrf
+                    <form action="{{ route('meetings.destroy', $meeting->id) }}" method="POST" class="inline m-0" 
+                        onsubmit="confirmAction(event, 'Xóa Sự kiện này?', 'Mọi dữ liệu khuôn mặt và khách mời liên quan sẽ bị xóa vĩnh viễn.')">                        @csrf
                         @method('DELETE')
                         <button type="submit" class="p-2.5 bg-gray-50 text-red-500 hover:bg-red-100 rounded-xl transition-colors flex items-center justify-center" title="Xóa">
                             <span class="material-symbols-outlined text-[20px]">delete</span>

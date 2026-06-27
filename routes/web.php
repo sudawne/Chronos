@@ -75,7 +75,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/guests/{guest}', [GuestController::class, 'update'])->name('guests.update');
     Route::delete('/guests/{guest}', [GuestController::class, 'destroy'])->name('guests.destroy');
     Route::get('/api/meetings/{meeting}/realtime-stats', [\App\Http\Controllers\MeetingController::class, 'realtimeStats']);
-
+    Route::get('/meetings/{meeting}/export-guests', [\App\Http\Controllers\MeetingController::class, 'exportGuests'])->name('meetings.export_guests');
+    
     // (Dành cho chức năng cập nhật ảnh nếu bạn chưa khai báo)
     Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace'])->name('guests.update_face');
     // Quản lý Đại biểu

@@ -79,8 +79,8 @@
 
                     <div class="w-px h-5 bg-slate-200 mx-1 hidden sm:block"></div>
 
-                    <form action="{{ route('meetings.send_tickets', $meeting->id) }}" method="POST" class="inline m-0 flex-1 sm:flex-none" onsubmit="return confirm('Hệ thống sẽ tiến hành gửi vé QR cho tất cả đại biểu CÓ email. Quá trình này có thể mất vài phút. Bạn có chắc chắn không?');">
-                        @csrf
+                    <form action="{{ route('meetings.send_tickets', $meeting->id) }}" method="POST" class="inline m-0 flex-1 sm:flex-none" 
+                        onsubmit="confirmAction(event, 'Gửi Vé QR hàng loạt?', 'Hệ thống sẽ gửi vé qua email cho tất cả đại biểu. Quá trình này có thể mất vài phút.')">                        @csrf
                         <button type="submit" class="w-full flex justify-center items-center gap-2 px-3 py-2 bg-transparent text-slate-600 hover:bg-slate-50 hover:text-amber-600 rounded-xl transition-all duration-300 active:scale-95">
                             <span class="material-symbols-outlined text-[18px] text-amber-500">forward_to_inbox</span>
                             <span class="text-sm font-medium">Gửi Vé</span>
@@ -248,10 +248,25 @@
                         Tổng số: <strong class="text-indigo-600 text-base">{{ $meeting->guests->count() }}</strong>
                     </span>
                 </div>
-                <button onclick="openAddGuestModal()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition-colors duration-300 active:scale-95">
-                    <span class="material-symbols-outlined text-[20px]">person_add</span>
-                    <span class="text-sm font-semibold">Thêm đại biểu</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    {{-- Nút Xuất Excel --}}
+                    
+                    <a href="{{ route('meetings.export_guests', $meeting->id) }}" target="_blank" data-no-swup download class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl shadow-sm transition-colors duration-300">
+                        <span class="material-symbols-outlined text-[20px]">download</span>
+                        <span class="text-sm font-semibold hidden sm:inline">Xuất Excel</span>
+                    </a>
+
+                    {{-- Nút In trực tiếp --}}
+                    <button type="button" onclick="printGuestList()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl shadow-sm transition-colors duration-300">
+                        <span class="material-symbols-outlined text-[20px]">print</span>
+                        <span class="text-sm font-semibold hidden sm:inline">In danh sách</span>
+                    </button>
+
+                    <button onclick="openAddGuestModal()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition-colors duration-300 active:scale-95 ml-2">
+                        <span class="material-symbols-outlined text-[20px]">person_add</span>
+                        <span class="text-sm font-semibold">Thêm đại biểu</span>
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -356,8 +371,8 @@
                                     </button>
                                     
                                     {{-- Nút Xoá --}}
-                                    <form action="{{ route('guests.destroy', $guest->id) ?? '#' }}" method="POST" class="inline-block" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đại biểu {{ addslashes($guest->full_name) }} không? Mọi dữ liệu khuôn mặt liên quan sẽ bị xóa.');">
-                                        @csrf
+                                    <form action="{{ route('guests.destroy', $guest->id) ?? '#' }}" method="POST" class="inline-block" 
+                                        onsubmit="confirmAction(event, 'Xóa Đại biểu {{ addslashes($guest->full_name) }}?', 'Dữ liệu khuôn mặt của đại biểu này cũng sẽ bị xóa.')">                                        @csrf
                                         @method('DELETE')
                                         <button type="submit" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="Xóa đại biểu">
                                             <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -691,7 +706,13 @@
         if(name) {
             window.open(`/meetings/${meetingId}/online?gate=${encodeURIComponent(name)}`, '_blank');
         } else {
-            alert("Vui lòng nhập tên cổng!");
+            // Thay thế alert("Vui lòng nhập tên cổng!"); bằng:
+            Swal.fire({
+                icon: 'info',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng nhập tên cổng trước khi mở!',
+                confirmButtonColor: '#4f46e5'
+            });
         }
     }
 
@@ -920,5 +941,127 @@
         fetchRealtimeStats(); // Gọi lần đầu ngay lập tức
         setInterval(fetchRealtimeStats, 3000); // Tự động quét cập nhật mỗi 3 giây
     });
+
+    // ==========================================
+    // LOGIC IN DANH SÁCH ĐẠI BIỂU
+    // ==========================================
+    function printGuestList() {
+        const printWindow = window.open('', '_blank');
+        
+        // Lấy thông tin cuộc họp
+        const meetingTitle = `{{ $meeting->title }}`;
+        const meetingTime = `{{ \Carbon\Carbon::parse($meeting->start_time)->format('H:i d/m/Y') }} - {{ \Carbon\Carbon::parse($meeting->end_time)->format('H:i d/m/Y') }}`;
+        const meetingLocation = `{{ $meeting->location }}`;
+
+        // Tạo nội dung bảng
+        let tableHtml = `
+            <table class="table-print">
+                <thead>
+                    <tr>
+                        <th width="5%">STT</th>
+                        <th width="25%">Họ và tên</th>
+                        <th width="25%">Email</th>
+                        <th width="15%">Chức vụ</th>
+                        <th width="15%">Vị trí ghế</th>
+                        <th width="15%">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        // Render dữ liệu bằng Blade
+        @foreach($meeting->guests as $index => $guest)
+            tableHtml += `
+                <tr>
+                    <td class="center">{{ $index + 1 }}</td>
+                    <td>{{ $guest->full_name }}</td>
+                    <td>{{ $guest->email ?? '' }}</td>
+                    <td>{{ $guest->position ?? '' }}</td>
+                    <td>{{ $guest->seat_location ?? '' }}</td>
+                    <td class="center">{{ $guest->is_attended ? 'Đã Check-in' : 'Vắng mặt' }}</td>
+                </tr>
+            `;
+        @endforeach
+
+        tableHtml += `</tbody></table>`;
+
+        // Đổ mã HTML vào trang in
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>In Danh Sách Đại Biểu</title>
+                <style>
+                    body { font-family: 'Times New Roman', Times, serif; padding: 0; margin: 0; color: #000; }
+                    .container { width: 100%; max-width: 1000px; margin: auto; padding: 20px; }
+                    .header-title { text-align: center; text-transform: uppercase; margin-bottom: 20px; font-size: 22px; }
+                    .info-box { margin-bottom: 30px; font-size: 16px; line-height: 1.6; }
+                    
+                    .table-print { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 15px; }
+                    .table-print th, .table-print td { border: 1px solid #000; padding: 10px; text-align: left; }
+                    .table-print th { background-color: #f2f2f2; font-weight: bold; text-align: center; }
+                    .center { text-align: center !important; }
+                    
+                    .signature-box { display: flex; justify-content: flex-end; margin-top: 30px; font-size: 16px; }
+                    .signature-content { text-align: center; width: 300px; }
+                    
+                    @media print {
+                        @page { margin: 15mm; size: A4; }
+                        body { -webkit-print-color-adjust: exact; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1 class="header-title">DANH SÁCH ĐẠI BIỂU</h1>
+                    
+                    <div class="info-box">
+                        <div><strong>Sự kiện:</strong> ${meetingTitle}</div>
+                        <div><strong>Thời gian:</strong> ${meetingTime}</div>
+                        <div><strong>Địa điểm:</strong> ${meetingLocation}</div>
+                    </div>
+                    
+                    ${tableHtml}
+                    
+                    <div class="signature-box">
+                        <div class="signature-content">
+                            <p style="margin-bottom: 5px;"><em>........., ngày ..... tháng ..... năm 20...</em></p>
+                            <p style="font-weight: bold;">NGƯỜI LẬP BẢNG</p>
+                            <p style="margin-top: 80px;">(Ký và ghi rõ họ tên)</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Đợi HTML render xong 0.5s thì gọi hộp thoại in
+        setTimeout(() => {
+            printWindow.print();
+            // printWindow.close(); // Mở dòng này nếu muốn in xong tự tắt tab
+        }, 500);
+    }
+    
+    function confirmAction(event, title, text) {
+        event.preventDefault(); // Chặn hành động mặc định
+        const form = event.target; 
+
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#5949be', // Màu chuẩn của CHRONOS AI
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Xác nhận xóa',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit(); // Chỉ submit khi người dùng đồng ý
+            }
+        });
+    }
 </script>
 @endsection

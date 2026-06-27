@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Exception;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MeetingController extends Controller
 {
@@ -708,5 +711,181 @@ class MeetingController extends Controller
             'chart_labels' => $chartLabels,
             'chart_data' => $chartData
         ]);
+    }
+
+    /**
+     * Xuất file Excel Danh sách đại biểu (Đã thiết kế chuẩn chuyên nghiệp)
+     */
+    public function exportGuests(Meeting $meeting)
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Đặt tên sheet
+        $sheet->setTitle('Danh sách Đại biểu');
+
+        // ==========================================
+        // 1. PHẦN HEADER SỰ KIỆN CHUYÊN NGHIỆP
+        // ==========================================
+        
+        // Tiêu đề chính
+        $sheet->mergeCells('A1:F1');
+        $sheet->setCellValue('A1', 'DANH SÁCH ĐẠI BIỂU');
+        $sheet->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 18, 'color' => ['argb' => 'FF1E1B4B']], // Màu Dark Indigo
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(35);
+
+        // Thông tin phụ (Sự kiện, Thời gian, Địa điểm)
+        $sheet->mergeCells('A2:F2');
+        $sheet->setCellValue('A2', 'Sự kiện: ' . $meeting->title);
+        
+        $sheet->mergeCells('A3:F3');
+        $sheet->setCellValue('A3', 'Thời gian: ' . \Carbon\Carbon::parse($meeting->start_time)->format('H:i d/m/Y') . '  đến  ' . \Carbon\Carbon::parse($meeting->end_time)->format('H:i d/m/Y'));
+        
+        $sheet->mergeCells('A4:F4');
+        $sheet->setCellValue('A4', 'Địa điểm: ' . $meeting->location);
+
+        // Canh giữa và đổi màu xám thanh lịch cho thông tin sự kiện
+        $sheet->getStyle('A2:A4')->applyFromArray([
+            'font' => ['size' => 11, 'italic' => true, 'color' => ['argb' => 'FF475569']], // Màu Slate 600
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+        $sheet->getRowDimension(2)->setRowHeight(20);
+        $sheet->getRowDimension(3)->setRowHeight(20);
+        $sheet->getRowDimension(4)->setRowHeight(20);
+
+        // ==========================================
+        // 2. PHẦN TIÊU ĐỀ BẢNG (TABLE HEADERS)
+        // ==========================================
+        $headerRow = 6;
+        $headers = [
+            'A' => 'STT', 
+            'B' => 'Họ và tên', 
+            'C' => 'Email', 
+            'D' => 'Chức vụ', 
+            'E' => 'Vị trí ghế', 
+            'F' => 'Trạng thái'
+        ];
+        
+        foreach ($headers as $col => $text) {
+            $sheet->setCellValue($col . $headerRow, $text);
+        }
+
+        // Đổ màu nền Gradient/Solid, chữ trắng in đậm
+        $sheet->getStyle('A6:F6')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF'], 'size' => 12],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF4F46E5'], // Màu xanh Indigo 600 giống nút bấm Web
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['argb' => 'FF312E81']],
+            ],
+        ]);
+        $sheet->getRowDimension($headerRow)->setRowHeight(30);
+
+        // ==========================================
+        // 3. ĐỔ DỮ LIỆU VÀ TÔ MÀU TRẠNG THÁI
+        // ==========================================
+        $row = 7;
+        foreach ($meeting->guests as $index => $guest) {
+            $sheet->setCellValue('A' . $row, $index + 1);
+            $sheet->setCellValue('B' . $row, $guest->full_name);
+            $sheet->setCellValue('C' . $row, $guest->email);
+            $sheet->setCellValue('D' . $row, $guest->position);
+            $sheet->setCellValue('E' . $row, $guest->seat_location);
+            
+            // Xử lý cột trạng thái
+            $status = $guest->is_attended ? 'Đã Check-in' : 'Vắng mặt';
+            $sheet->setCellValue('F' . $row, $status);
+
+            // Tô màu chữ Xanh lá nếu có mặt, Đỏ nếu vắng mặt
+            if ($guest->is_attended) {
+                $sheet->getStyle('F' . $row)->getFont()->getColor()->setARGB('FF10B981'); // Xanh Emerald
+                $sheet->getStyle('F' . $row)->getFont()->setBold(true);
+            } else {
+                $sheet->getStyle('F' . $row)->getFont()->getColor()->setARGB('FFEF4444'); // Đỏ Rose
+            }
+
+            // Canh giữa cho cột STT, Vị trí ghế và Trạng thái
+            $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("E{$row}:F{$row}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            
+            // Canh giữa theo chiều dọc cho toàn bộ dòng dữ liệu
+            $sheet->getStyle("A{$row}:F{$row}")->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            
+            // Nới lỏng chiều cao các dòng dữ liệu để nhìn không bị rối mắt
+            $sheet->getRowDimension($row)->setRowHeight(24);
+
+            $row++;
+        }
+
+        // Kẻ khung mờ xám cho toàn bộ phần thân bảng
+        if ($row > 7) {
+            $sheet->getStyle('A7:F' . ($row - 1))->applyFromArray([
+                'borders' => [
+                    'allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['argb' => 'FFCBD5E1']], // Màu viền Slate 300
+                ],
+            ]);
+        }
+
+        // ==========================================
+        // 4. CHỈNH ĐỘ RỘNG CỘT TỰ ĐỘNG VÀ CỐ ĐỊNH
+        // ==========================================
+        $sheet->getColumnDimension('A')->setWidth(8);  // STT cố định
+        $sheet->getColumnDimension('B')->setAutoSize(true); // Tên tự động
+        $sheet->getColumnDimension('C')->setAutoSize(true); // Email tự động
+        $sheet->getColumnDimension('D')->setAutoSize(true); // Chức vụ tự động
+        $sheet->getColumnDimension('E')->setWidth(18); // Ghế
+        $sheet->getColumnDimension('F')->setWidth(20); // Trạng thái
+
+        // ==========================================
+        // 5. PHẦN CHỮ KÝ Ở CUỐI FILE
+        // ==========================================
+        $row += 2;
+        $sheet->mergeCells("D{$row}:F{$row}");
+        $sheet->setCellValue("D{$row}", '.........., Ngày ...... tháng ...... năm 20...');
+        $sheet->getStyle("D{$row}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("D{$row}")->getFont()->setItalic(true);
+
+        $row++;
+        $sheet->mergeCells("D{$row}:F{$row}");
+        $sheet->setCellValue("D{$row}", 'NGƯỜI XUẤT BÁO CÁO');
+        $sheet->getStyle("D{$row}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("D{$row}")->getFont()->setBold(true);
+
+        $row += 4; // Bỏ cách vài dòng để ký tên
+        $sheet->mergeCells("D{$row}:F{$row}");
+        $sheet->setCellValue("D{$row}", '(Ký và ghi rõ họ tên)');
+        $sheet->getStyle("D{$row}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("D{$row}")->getFont()->setItalic(true);
+
+        // ==========================================
+        // 6. XUẤT FILE TẢI VỀ
+        // ==========================================
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $fileName = 'Bao_Cao_Dai_Bieu_Su_Kien_' . $meeting->id . '.xlsx';
+
+        $response = new \Symfony\Component\HttpFoundation\StreamedResponse(function() use ($writer) {
+            $writer->save('php://output');
+        });
+
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment;filename="'.$fileName.'"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+
+        return $response;
     }
 }
