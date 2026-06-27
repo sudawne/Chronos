@@ -95,14 +95,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/welcome-templates', [MeetingController::class, 'saveTemplate'])->name('api.save_template');
     Route::delete('/api/welcome-templates/{id}', [MeetingController::class, 'deleteTemplate'])->name('api.delete_template');
     // Admin: Quản lý User (CRUD)
-    Route::prefix('admin')->name('admin.')->group(function () {
-        // 1. Quản lý user & cấp quyền riêng lẻ
-        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
-        Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
-        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+    Route::middleware(['auth'])->group(function () { 
+        // 1. Quản lý phân quyền Cá nhân (User)
+        Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::get('/admin/users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
+        Route::put('/admin/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
 
-        // 2. Quản lý Ma trận chức vụ (BẠN ĐANG THIẾU 2 DÒNG NÀY TRONG WEB.PHP)
-        Route::get('/matrix', [AdminUserController::class, 'matrix'])->name('matrix.index');
-        Route::post('/matrix/update', [AdminUserController::class, 'updateMatrix'])->name('matrix.update');
+        // 2. Quản lý Ma trận chức vụ (Nhóm - Roles)
+        Route::get('/admin/permissions/matrix', [AdminUserController::class, 'matrix'])->name('admin.matrix.index');
+        Route::post('/admin/permissions/matrix/update', [AdminUserController::class, 'matrixUpdate'])->name('admin.permissions.matrix.update');
     });
 });

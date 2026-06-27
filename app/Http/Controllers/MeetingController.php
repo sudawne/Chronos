@@ -718,6 +718,12 @@ class MeetingController extends Controller
      */
     public function exportGuests(Meeting $meeting)
     {
+       /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!$user->hasPermissionTo('attendance.export')) {
+            abort(403, 'Bạn không có quyền này!');
+        }
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         
