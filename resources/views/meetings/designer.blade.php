@@ -161,9 +161,9 @@
                              style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; color: {{ $el['color'] }}; font-size: {{ $el['size'] }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; font-family: {{ $el['fontFamily'] ?? '\'Plus Jakarta Sans\', sans-serif' }};">
                             {{ $el['content'] ?? $el['text'] }}
                         </div>
-                    @elseif(($el['type'] ?? '') == 'image')
+                   @elseif(($el['type'] ?? '') == 'image')
                         <div id="{{ $el['id'] }}" class="draggable" data-type="image" style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px;">
-                            <img src="{{ $el['src'] }}" style="width: {{ $el['width'] }}px;">
+                            <img src="{{ $el['src'] }}" style="width: {{ $el['width'] }}px; height: {{ isset($el['height']) && $el['height'] !== 'auto' ? $el['height'].'px' : 'auto' }};">
                         </div>
                     @elseif(($el['type'] ?? '') == 'avatar')
                         <div id="{{ $el['id'] }}" class="draggable" data-type="avatar" style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; padding: 0; border-radius: 50%; overflow: hidden; border: {{ $el['borderWidth'] ?? 4 }}px solid {{ $el['borderColor'] ?? '#ffffff' }}; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: {{ $el['width'] ?? 200 }}px; height: {{ $el['width'] ?? 200 }}px;">
@@ -239,6 +239,29 @@
                     <div>
                         <label class="text-[13px] font-semibold block mb-1">Màu viền ảnh</label>
                         <input type="color" id="prop-avatar-border-color" class="w-full h-10 rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-800 border-none p-1">
+                    </div>
+                </div>
+
+                {{-- BẢNG ĐIỀU KHIỂN: HÌNH ẢNH --}}
+                <div id="prop-image-panel" class="hidden space-y-5">
+                    <div>
+                        <label class="text-[13px] font-semibold block mb-1">Kéo giãn đều (Tự tính chiều cao)</label>
+                        <input type="number" id="prop-image-scale" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm outline-none" title="Thay đổi kích thước giữ nguyên tỷ lệ">
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <label class="text-[13px] font-semibold block mb-1">Rộng (Tự do)</label>
+                            <input type="number" id="prop-image-width" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm outline-none">
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-[13px] font-semibold block mb-1">Cao (Tự do)</label>
+                            <input type="number" id="prop-image-height" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <button id="btn-reset-aspect-ratio" class="w-full py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-xs font-bold rounded-lg transition-colors">
+                            <span class="material-symbols-outlined text-[14px] align-middle">aspect_ratio</span> Khôi phục tỷ lệ gốc
+                        </button>
                     </div>
                 </div>
 
@@ -406,9 +429,25 @@
                 document.getElementById('prop-avatar-border-width').value = parseInt(window.getComputedStyle(el).borderTopWidth) || 0;
                 document.getElementById('prop-avatar-border-color').value = rgbToHex(window.getComputedStyle(el).borderTopColor);
             } 
+            else if (el.dataset.type === 'image') {
+                document.getElementById('prop-image-panel').classList.remove('hidden');
+                document.getElementById('prop-text-panel').classList.add('hidden');
+                document.getElementById('prop-avatar-panel').classList.add('hidden');
+                
+                let img = el.querySelector('img');
+                if (img) {
+                    const currentWidth = parseInt(window.getComputedStyle(img).width) || 200;
+                    const currentHeight = parseInt(window.getComputedStyle(img).height) || 200;
+                    
+                    document.getElementById('prop-image-scale').value = currentWidth;
+                    document.getElementById('prop-image-width').value = currentWidth;
+                    document.getElementById('prop-image-height').value = currentHeight;
+                }
+            }   
             else {
                 document.getElementById('prop-text-panel').classList.add('hidden');
                 document.getElementById('prop-avatar-panel').classList.add('hidden');
+                document.getElementById('prop-image-panel').classList.add('hidden');
             }
         }
         
@@ -418,6 +457,7 @@
             document.getElementById('no-selection').classList.remove('hidden');
             document.getElementById('prop-text-panel').classList.add('hidden');
             document.getElementById('prop-avatar-panel').classList.add('hidden');
+            document.getElementById('prop-image-panel').classList.add('hidden');
             document.getElementById('prop-action-panel').classList.add('hidden');
         }
         
@@ -457,6 +497,59 @@
             }
         });
 
+        // --- SỰ KIỆN ĐIỀU CHỈNH HÌNH ẢNH (LOGO) ---
+        
+        // 1. Kéo giãn đều (Scale)
+        document.getElementById('prop-image-scale').addEventListener('input', (e) => { 
+            if(selectedElement && selectedElement.dataset.type === 'image') {
+                const img = selectedElement.querySelector('img');
+                if (img) {
+                    img.style.width = `${e.target.value}px`;
+                    img.style.height = 'auto'; // Trả về auto để giữ tỷ lệ
+                    
+                    // Cập nhật lại 2 ô Tự do để đồng bộ số liệu
+                    setTimeout(() => {
+                        document.getElementById('prop-image-width').value = e.target.value;
+                        document.getElementById('prop-image-height').value = parseInt(window.getComputedStyle(img).height);
+                    }, 10);
+                }
+            }
+        });
+
+        // 2. Kéo Chiều rộng độc lập
+        document.getElementById('prop-image-width').addEventListener('input', (e) => { 
+            if(selectedElement && selectedElement.dataset.type === 'image') {
+                const img = selectedElement.querySelector('img');
+                if (img) {
+                    img.style.width = `${e.target.value}px`;
+                    document.getElementById('prop-image-scale').value = e.target.value; // Đồng bộ ô scale
+                }
+            }
+        });
+
+        // 3. Kéo Chiều cao độc lập
+        document.getElementById('prop-image-height').addEventListener('input', (e) => { 
+            if(selectedElement && selectedElement.dataset.type === 'image') {
+                const img = selectedElement.querySelector('img');
+                if (img) {
+                    img.style.height = `${e.target.value}px`;
+                }
+            }
+        });
+
+        // 4. Nút Khôi phục tỷ lệ gốc
+        document.getElementById('btn-reset-aspect-ratio').addEventListener('click', () => {
+            if(selectedElement && selectedElement.dataset.type === 'image') {
+                const img = selectedElement.querySelector('img');
+                if (img) {
+                    img.style.height = 'auto'; // Reset lại height
+                    setTimeout(() => {
+                        document.getElementById('prop-image-height').value = parseInt(window.getComputedStyle(img).height);
+                    }, 10);
+                }
+            }
+        });
+
         function rgbToHex(rgb) {
             let match = rgb.match(/\d+/g); if(!match) return "#ffffff";
             let [r, g, b] = match; return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
@@ -475,8 +568,11 @@
                     data.fontWeight = window.getComputedStyle(el).fontWeight;
                     data.fontFamily = window.getComputedStyle(el).fontFamily;
                 } else if (type === 'image') {
-                    data.src = el.querySelector('img').src;
-                    data.width = parseInt(window.getComputedStyle(el).width);
+                    const img = el.querySelector('img');
+                    data.src = img.src;
+                    data.width = parseInt(window.getComputedStyle(img).width);
+                    // Thu thập thêm Height (nếu đang bị kéo méo thì lấy số, nếu không thì lưu 'auto')
+                    data.height = img.style.height !== 'auto' && img.style.height !== '' ? parseInt(window.getComputedStyle(img).height) : 'auto';
                 } else if (type === 'avatar') {
                     // Sử dụng borderTopWidth và borderTopColor để tránh lỗi chuỗi rỗng trên Chrome
                     data.width = parseInt(window.getComputedStyle(el).width) || 200;
@@ -527,7 +623,8 @@
                         if (el.type === 'text') {
                             innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color || '#ffffff'}; font-size: ${el.size}px; font-weight: ${el.fontWeight || 'normal'}; font-family: ${el.fontFamily || "'Plus Jakarta Sans', sans-serif"}; white-space: nowrap;">${el.content || el.text || ''}</div>`;
                         } else if (el.type === 'image') {
-                            innerHtml += `<img src="${el.src}" style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; height: auto;">`;
+                            let heightStyle = el.height && el.height !== 'auto' ? `height: ${el.height}px;` : 'height: auto;';
+                            innerHtml += `<img src="${el.src}" style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; ${heightStyle}">`;                        
                         } else if (el.type === 'avatar') {
                             innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width || 200}px; height: ${el.width || 200}px; border-radius: 50%; border: ${el.borderWidth || 0}px solid ${el.borderColor || 'transparent'}; overflow: hidden; background: #000; box-shadow: 0 10px 25px rgba(0,0,0,0.3);"><img src="https://ui-avatars.com/api/?name=Avatar&size=300" style="width: 100%; height: 100%; object-fit: cover;"></div>`;
                         }
@@ -600,6 +697,11 @@
                         const img = document.createElement('img');
                         img.src = elData.src;
                         img.style.width = elData.width + 'px';
+                        if (elData.height && elData.height !== 'auto') {
+                            img.style.height = elData.height + 'px';
+                        } else {
+                            img.style.height = 'auto';
+                        }
                         el.appendChild(img);
                     } else if(elData.type === 'avatar') {
                         el.style.padding = '0'; // Đảm bảo Avatar vừa khít
