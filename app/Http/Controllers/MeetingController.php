@@ -579,31 +579,68 @@ class MeetingController extends Controller
 
         $configData = $payload['config'];
 
-        // Tách Base64 thành file ảnh lưu vào ổ cứng (Tránh lỗi sập Database)
-        if (!empty($configData['bg_image']) && str_starts_with($configData['bg_image'], 'data:image')) {
-            $image_parts = explode(";base64,", $configData['bg_image']);
-            $image_base64 = base64_decode($image_parts[1]);
-            
-            $fileName = 'tpl_bg_' . time() . '.png';
-            $path = "templates/{$fileName}"; // Lưu vào thư mục public/storage/templates
-            
-            \Illuminate\Support\Facades\Storage::disk('public')->put($path, $image_base64);
-            $configData['bg_image'] = '/storage/' . $path;
-        }
-
-        foreach ($configData['elements'] as &$el) {
-            if (isset($el['type']) && $el['type'] === 'image' && isset($el['src']) && str_starts_with($el['src'], 'data:image')) {
-                $image_parts = explode(";base64,", $el['src']);
+        // ==========================================
+        // 1. XỬ LÝ ẢNH NỀN (BACKGROUND)
+        // ==========================================
+        if (!empty($configData['bg_image'])) {
+            if (str_starts_with($configData['bg_image'], 'data:image')) {
+                // Trường hợp 1: Ảnh mới upload (Base64)
+                $image_parts = explode(";base64,", $configData['bg_image']);
                 $image_base64 = base64_decode($image_parts[1]);
-                $fileName = 'tpl_element_' . uniqid() . '.png';
-                $path = "templates/{$fileName}";
+                
+                $fileName = 'tpl_bg_' . time() . '.png';
+                $path = "templates/{$fileName}"; 
                 
                 \Illuminate\Support\Facades\Storage::disk('public')->put($path, $image_base64);
-                $el['src'] = '/storage/' . $path; 
+                $configData['bg_image'] = '/storage/' . $path;
+            } elseif (str_contains($configData['bg_image'], '/storage/meetings/')) {
+                // Trường hợp 2: Ảnh đang lấy từ một Meeting có sẵn (URL)
+                // Tách lấy đường dẫn tương đối để copy
+                $oldPath = str_replace('/storage/', '', parse_url($configData['bg_image'], PHP_URL_PATH));
+                
+                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath)) {
+                    $fileName = 'tpl_bg_' . time() . '.png';
+                    $newPath = "templates/{$fileName}";
+                    \Illuminate\Support\Facades\Storage::disk('public')->copy($oldPath, $newPath);
+                    $configData['bg_image'] = '/storage/' . $newPath;
+                }
             }
         }
 
-        // Lưu vào CSDL
+        // ==========================================
+        // 2. XỬ LÝ LOGO / HÌNH ẢNH CON (ELEMENTS)
+        // ==========================================
+        if (!empty($configData['elements'])) {
+            foreach ($configData['elements'] as &$el) {
+                if (isset($el['type']) && $el['type'] === 'image' && !empty($el['src'])) {
+                    if (str_starts_with($el['src'], 'data:image')) {
+                        // Trường hợp 1: Ảnh con mới upload (Base64)
+                        $image_parts = explode(";base64,", $el['src']);
+                        $image_base64 = base64_decode($image_parts[1]);
+                        
+                        $fileName = 'tpl_element_' . uniqid() . '.png';
+                        $path = "templates/{$fileName}";
+                        
+                        \Illuminate\Support\Facades\Storage::disk('public')->put($path, $image_base64);
+                        $el['src'] = '/storage/' . $path; 
+                    } elseif (str_contains($el['src'], '/storage/meetings/')) {
+                        // Trường hợp 2: Ảnh con đang lấy từ một Meeting có sẵn (URL)
+                        $oldPath = str_replace('/storage/', '', parse_url($el['src'], PHP_URL_PATH));
+                        
+                        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath)) {
+                            $fileName = 'tpl_element_' . uniqid() . '.png';
+                            $newPath = "templates/{$fileName}";
+                            \Illuminate\Support\Facades\Storage::disk('public')->copy($oldPath, $newPath);
+                            $el['src'] = '/storage/' . $newPath;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // 3. LƯU MẪU VÀO DATABASE
+        // ==========================================
         $template = \App\Models\WelcomeTemplate::create([
             'name' => $payload['name'],
             'config' => json_encode($configData)

@@ -63,7 +63,26 @@
                 @endphp
 
                 @if(($el['type'] ?? 'text') == 'text')
-                    <div id="{{ $el['id'] }}" class="designed-element" style="left: {{ $ex }}px; top: {{ $ey }}px; color: {{ $el['color'] ?? '#ffffff' }}; font-size: {{ $el['size'] ?? 24 }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; font-family: {{ $el['fontFamily'] ?? '\'Plus Jakarta Sans\', sans-serif' }}; transform-origin: left center;">{{ $el['content'] ?? $el['text'] }}</div>
+                    @php
+                        $align = $el['align'] ?? 'left';
+                        $justify = $align == 'center' ? 'center' : ($align == 'right' ? 'flex-end' : 'flex-start');
+                        $width = isset($el['width']) && $el['width'] !== 'max-content' && $el['width'] !== 'auto' ? $el['width'].'px' : 'max-content';
+                        
+                        $transformOrigin = $align == 'center' ? 'center center' : ($align == 'right' ? 'right center' : 'left center');
+                    @endphp
+                    
+                    <div id="{{ $el['id'] }}" class="designed-element flex items-center" 
+                        style="left: {{ $ex }}px; top: {{ $ey }}px; 
+                               color: {{ $el['color'] ?? '#ffffff' }}; 
+                               font-size: {{ $el['size'] ?? 24 }}px; 
+                               font-weight: {{ $el['fontWeight'] ?? 'normal' }}; 
+                               font-family: {{ $el['fontFamily'] ?? '\'Plus Jakarta Sans\', sans-serif' }}; 
+                               width: {{ $width }}; 
+                               text-align: {{ $align }}; 
+                               justify-content: {{ $justify }}; 
+                               transform-origin: {{ $transformOrigin }};">
+                        {{ $el['content'] ?? $el['text'] }}
+                    </div>
                 @elseif(($el['type'] ?? '') == 'image')
                     <img id="{{ $el['id'] }}" src="{{ $el['src'] }}" class="designed-element" style="left: {{ $ex }}px; top: {{ $ey }}px; width: {{ $el['width'] }}px; max-width: calc({{ $ARTBOARD_W }}px - {{ $ex }}px);">
                 @elseif(($el['type'] ?? '') == 'avatar')

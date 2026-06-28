@@ -156,10 +156,15 @@
                 @endphp
 
                 @foreach($elements as $el)
-                    @if(($el['type'] ?? 'text') == 'text')
-                        <div id="{{ $el['id'] }}" class="draggable" data-type="text"
-                             style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; color: {{ $el['color'] }}; font-size: {{ $el['size'] }}px; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; font-family: {{ $el['fontFamily'] ?? '\'Plus Jakarta Sans\', sans-serif' }};">
-                            {{ $el['content'] ?? $el['text'] }}
+                    @if(($el['type'] ?? '') == 'text')
+                        @php
+                            $align = $el['align'] ?? 'left';
+                            $justify = $align == 'center' ? 'center' : ($align == 'right' ? 'flex-end' : 'flex-start');
+                            $width = isset($el['width']) && $el['width'] !== 'max-content' ? $el['width'].'px' : 'max-content';
+                        @endphp
+                        <div id="{{ $el['id'] }}" class="draggable cursor-move" data-type="text" 
+                             style="position: absolute; left: {{ $el['x'] }}px; top: {{ $el['y'] }}px; font-family: {{ $el['fontFamily'] ?? '\'Plus Jakarta Sans\', sans-serif' }}; font-size: {{ $el['size'] }}px; color: {{ $el['color'] }}; font-weight: {{ $el['fontWeight'] ?? 'normal' }}; width: {{ $width }}; text-align: {{ $align }}; justify-content: {{ $justify }}; display: flex; align-items: center;">
+                            {{ $el['content'] ?? '' }}
                         </div>
                    @elseif(($el['type'] ?? '') == 'image')
                         <div id="{{ $el['id'] }}" class="draggable" data-type="image" style="left: {{ $el['x'] }}px; top: {{ $el['y'] }}px;">
@@ -221,6 +226,19 @@
                             <option value="600">Bán đậm (600)</option>
                             <option value="800">Đậm (800)</option>
                         </select>
+                    </div>
+                    {{-- ĐỘ RỘNG & CĂN LỀ --}}
+                    <div>
+                        <label class="text-[13px] font-semibold block mb-1">Khung chữ & Căn lề</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="prop-text-width" class="w-1/2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm outline-none" title="Nhập độ rộng (VD: 200)" placeholder="Auto">
+                            <select id="prop-text-align" class="w-1/2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-sm outline-none">
+                                <option value="left">Trái</option>
+                                <option value="center">Giữa</option>
+                                <option value="right">Phải</option>
+                            </select>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">*Mẹo: Set độ rộng bằng Avatar (vd: 200) và chọn 'Giữa' để tên luôn ngay ngắn.</p>
                     </div>
                 </div>
 
@@ -419,6 +437,9 @@
                         break;
                     }
                 }
+                const widthStyle = el.style.width || window.getComputedStyle(el).width;
+                document.getElementById('prop-text-width').value = (widthStyle === 'max-content' || widthStyle === 'auto') ? '' : parseInt(widthStyle);
+                document.getElementById('prop-text-align').value = el.style.textAlign || window.getComputedStyle(el).textAlign || 'left';
             } 
             else if (el.dataset.type === 'avatar') {
                 document.getElementById('prop-avatar-panel').classList.remove('hidden');
@@ -497,6 +518,40 @@
             }
         });
 
+        // Bắt sự kiện chỉnh Chiều rộng khung chữ
+        document.getElementById('prop-text-width').addEventListener('input', (e) => {
+            if(selectedElement && selectedElement.dataset.type === 'text') {
+                selectedElement.style.width = e.target.value ? `${e.target.value}px` : 'max-content';
+            }
+        });
+
+        // Bắt sự kiện chọn Căn lề
+        // Bắt sự kiện chọn Căn lề (Đã tối ưu cho cả Flexbox và Block)
+        document.getElementById('prop-text-align').addEventListener('change', (e) => {
+            if(selectedElement && selectedElement.dataset.type === 'text') {
+                const alignValue = e.target.value; // left, center, right
+                
+                // 1. Căn lề cho thẻ Block thông thường
+                selectedElement.style.textAlign = alignValue;
+                
+                // 2. Căn lề cho thẻ Flexbox (Đề phòng thẻ chữ có class 'flex' hoặc 'inline-flex')
+                if (alignValue === 'center') {
+                    selectedElement.style.justifyContent = 'center';
+                } else if (alignValue === 'right') {
+                    selectedElement.style.justifyContent = 'flex-end';
+                } else {
+                    selectedElement.style.justifyContent = 'flex-start';
+                }
+                
+                // 3. Mẹo UX: Tự động bung rộng khung chữ ra bằng khung ảnh (240px) nếu đang để trống width
+                const currentWidth = selectedElement.style.width;
+                if (alignValue !== 'left' && (!currentWidth || currentWidth === 'max-content' || currentWidth === 'auto')) {
+                    selectedElement.style.width = '240px';
+                    document.getElementById('prop-text-width').value = 240;
+                }
+            }
+        });
+
         // --- SỰ KIỆN ĐIỀU CHỈNH HÌNH ẢNH (LOGO) ---
         
         // 1. Kéo giãn đều (Scale)
@@ -561,24 +616,33 @@
             document.querySelectorAll('.draggable').forEach(el => {
                 const type = el.dataset.type || 'text';
                 let data = { id: el.id, type: type, x: el.offsetLeft, y: el.offsetTop };
+                
                 if (type === 'text') {
                     data.content = el.innerText;
-                    data.color = rgbToHex(window.getComputedStyle(el).color);
+                    data.fontFamily = window.getComputedStyle(el).fontFamily.replace(/['"]/g, '');
                     data.size = parseInt(window.getComputedStyle(el).fontSize);
+                    data.color = window.getComputedStyle(el).color;
                     data.fontWeight = window.getComputedStyle(el).fontWeight;
-                    data.fontFamily = window.getComputedStyle(el).fontFamily;
+                    
+                    // Lưu chiều rộng
+                    const w = el.style.width;
+                    data.width = (w !== 'max-content' && w !== '' && w !== 'auto') ? parseInt(window.getComputedStyle(el).width) : 'max-content';
+                    
+                    // Lưu căn lề (Thêm getComputedStyle để độ chính xác tuyệt đối)
+                    data.align = el.style.textAlign || window.getComputedStyle(el).textAlign || 'left';
+                    
                 } else if (type === 'image') {
                     const img = el.querySelector('img');
                     data.src = img.src;
                     data.width = parseInt(window.getComputedStyle(img).width);
-                    // Thu thập thêm Height (nếu đang bị kéo méo thì lấy số, nếu không thì lưu 'auto')
                     data.height = img.style.height !== 'auto' && img.style.height !== '' ? parseInt(window.getComputedStyle(img).height) : 'auto';
+                    
                 } else if (type === 'avatar') {
-                    // Sử dụng borderTopWidth và borderTopColor để tránh lỗi chuỗi rỗng trên Chrome
                     data.width = parseInt(window.getComputedStyle(el).width) || 200;
                     data.borderWidth = parseInt(window.getComputedStyle(el).borderTopWidth) || 0;
                     data.borderColor = rgbToHex(window.getComputedStyle(el).borderTopColor);
                 }
+                
                 elementsData.push(data);
             });
 
@@ -621,7 +685,11 @@
                 if (data.elements) {
                     data.elements.forEach(el => {
                         if (el.type === 'text') {
-                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color || '#ffffff'}; font-size: ${el.size}px; font-weight: ${el.fontWeight || 'normal'}; font-family: ${el.fontFamily || "'Plus Jakarta Sans', sans-serif"}; white-space: nowrap;">${el.content || el.text || ''}</div>`;
+                            let textWidth = el.width && el.width !== 'max-content' ? `${el.width}px` : 'max-content';
+                            let textAlign = el.align || 'left';
+                            let justify = textAlign === 'center' ? 'center' : (textAlign === 'right' ? 'flex-end' : 'flex-start');
+                            
+                            innerHtml += `<div style="position: absolute; left: ${el.x}px; top: ${el.y}px; font-family: ${el.fontFamily || "'Plus Jakarta Sans', sans-serif"}; font-size: ${el.size}px; color: ${el.color}; font-weight: ${el.fontWeight || 'normal'}; width: ${textWidth}; text-align: ${textAlign}; justify-content: ${justify}; display: flex; align-items: center;">${el.content || ''}</div>`;
                         } else if (el.type === 'image') {
                             let heightStyle = el.height && el.height !== 'auto' ? `height: ${el.height}px;` : 'height: auto;';
                             innerHtml += `<img src="${el.src}" style="position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; ${heightStyle}">`;                        
@@ -687,12 +755,16 @@
                     el.style.left = elData.x + 'px';
                     el.style.top = elData.y + 'px';
 
-                    if(elData.type === 'text') {
-                        el.style.color = elData.color;
-                        el.style.fontSize = elData.size + 'px';
-                        el.style.fontWeight = elData.fontWeight;
-                        el.style.fontFamily = elData.fontFamily || "'Plus Jakarta Sans', sans-serif";
+                    if (elData.type === 'text') {
                         el.innerText = elData.content;
+                        el.style.fontFamily = elData.fontFamily;
+                        el.style.fontSize = elData.size + 'px';
+                        el.style.color = elData.color;
+                        el.style.fontWeight = elData.fontWeight || 'normal';
+
+                        el.style.width = (elData.width && elData.width !== 'max-content') ? elData.width + 'px' : 'max-content';
+                        el.style.textAlign = elData.align || 'left';
+                        el.style.justifyContent = elData.align === 'center' ? 'center' : (elData.align === 'right' ? 'flex-end' : 'flex-start');
                     } else if(elData.type === 'image') {
                         const img = document.createElement('img');
                         img.src = elData.src;
