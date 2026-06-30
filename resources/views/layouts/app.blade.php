@@ -119,7 +119,7 @@
                 <span class="font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 max-w-[150px] ml-4 md:ml-0 md:opacity-0 md:max-w-0 group-[.is-expanded]/sidebar:md:ml-4 group-[.is-expanded]/sidebar:md:opacity-100 group-[.is-expanded]/sidebar:md:max-w-[150px]">Danh sách</span>
             </a>
 
-            @role('Admin')
+            @can('user.view')
             <div class="mt-6 mb-2 ml-8 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300/60 dark:text-indigo-500/50">Quản trị</div>
             
             <a href="{{ route('admin.users.index') }}" 
@@ -129,7 +129,7 @@
                 <span class="material-symbols-outlined flex-shrink-0" style="{{ request()->routeIs('admin.users.*', 'admin.matrix.*') ? 'font-variation-settings: \'FILL\' 1;' : '' }}">admin_panel_settings</span>
                 <span class="font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 max-w-[150px] ml-4 md:ml-0 md:opacity-0 md:max-w-0 group-[.is-expanded]/sidebar:md:ml-4 group-[.is-expanded]/sidebar:md:opacity-100 group-[.is-expanded]/sidebar:md:max-w-[150px]">Phân quyền</span>
             </a>
-            @endrole
+            @endcan
         </nav>
 
         <div class="flex flex-col w-full space-y-4">

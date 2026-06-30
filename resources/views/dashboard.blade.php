@@ -20,10 +20,11 @@
                 <a href="{{ route('dashboard', ['range' => 'year']) }}" data-no-swup class="px-4 py-2 rounded-lg text-sm transition-colors {{ $range == 'year' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-500 hover:bg-slate-50 font-medium' }}">Năm</a>
                 <a href="{{ route('dashboard', ['range' => 'all']) }}" data-no-swup class="px-4 py-2 rounded-lg text-sm transition-colors {{ $range == 'all' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-500 hover:bg-slate-50 font-medium' }}">Tất cả</a>
             </div>
-            
+            @can('meeting.create')
             <a href="{{ route('meetings.create') }}" data-no-swup class="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition-all font-semibold text-sm active:scale-95">
                 <span class="material-symbols-outlined text-[20px]">add</span> Tạo sự kiện
             </a>
+            @endcan
         </div>
     </div>
 

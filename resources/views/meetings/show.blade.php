@@ -9,7 +9,6 @@
     
     {{-- Header Section --}}
     <div class="mb-8">
-        {{-- Back Button --}}
         <a href="{{ route('meetings.index') }}" 
            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all duration-300 mb-6 group">
             <span class="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
@@ -65,11 +64,13 @@
                         <span class="text-sm font-bold">Welcome Screen</span>
                     </a>
 
-                    <a href="{{ route('meetings.designer', $meeting->id) }}" target="_blank" 
-                       class="flex-1 sm:flex-none flex justify-center items-center gap-2 px-3 py-2 bg-transparent text-slate-600 hover:bg-slate-50 hover:text-fuchsia-600 rounded-xl transition-all duration-300 active:scale-95">
-                        <span class="material-symbols-outlined text-[18px] text-fuchsia-500">brush</span>
-                        <span class="text-sm font-medium">Design</span>
-                    </a>
+                    @can('meeting.design')
+                        <a href="{{ route('meetings.designer', $meeting->id) }}" target="_blank" 
+                        class="flex-1 sm:flex-none flex justify-center items-center gap-2 px-3 py-2 bg-transparent text-slate-600 hover:bg-slate-50 hover:text-fuchsia-600 rounded-xl transition-all duration-300 active:scale-95">
+                            <span class="material-symbols-outlined text-[18px] text-fuchsia-500">brush</span>
+                            <span class="text-sm font-medium">Design</span>
+                        </a>
+                    @endcan
 
                     <a href="{{ route('meetings.game', $meeting->id) }}" target="_blank" 
                        class="flex-1 sm:flex-none flex justify-center items-center gap-2 px-3 py-2 bg-transparent text-slate-600 hover:bg-slate-50 hover:text-orange-600 rounded-xl transition-all duration-300 active:scale-95">
@@ -181,7 +182,6 @@
     </div>
 
     {{-- THỐNG KÊ REALTIME SECTION (MỚI THÊM) --}}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {{-- Cột 1: Chỉ số tổng quan (Tỷ lệ & Số lượng) --}}
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col justify-center relative overflow-hidden">
@@ -250,12 +250,12 @@
                 </div>
                 <div class="flex items-center gap-2">
                     {{-- Nút Xuất Excel --}}
-                    
-                    <a href="{{ route('meetings.export_guests', $meeting->id) }}" target="_blank" data-no-swup download class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl shadow-sm transition-colors duration-300">
-                        <span class="material-symbols-outlined text-[20px]">download</span>
-                        <span class="text-sm font-semibold hidden sm:inline">Xuất Excel</span>
-                    </a>
-
+                    @can('attendance.export')
+                        <a href="{{ route('meetings.export_guests', $meeting->id) }}" target="_blank" data-no-swup download class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl shadow-sm transition-colors duration-300">
+                            <span class="material-symbols-outlined text-[20px]">download</span>
+                            <span class="text-sm font-semibold hidden sm:inline">Xuất Excel</span>
+                        </a>
+                    @endcan
                     {{-- Nút In trực tiếp --}}
                     <button type="button" onclick="printGuestList()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl shadow-sm transition-colors duration-300">
                         <span class="material-symbols-outlined text-[20px]">print</span>
@@ -371,13 +371,15 @@
                                     </button>
                                     
                                     {{-- Nút Xoá --}}
-                                    <form action="{{ route('guests.destroy', $guest->id) ?? '#' }}" method="POST" class="inline-block" 
-                                        onsubmit="confirmAction(event, 'Xóa Đại biểu {{ addslashes($guest->full_name) }}?', 'Dữ liệu khuôn mặt của đại biểu này cũng sẽ bị xóa.')">                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="Xóa đại biểu">
-                                            <span class="material-symbols-outlined text-[18px]">delete</span>
-                                        </button>
-                                    </form>
+                                    @can('meeting.delete')
+                                        <form action="{{ route('guests.destroy', $guest->id) ?? '#' }}" method="POST" class="inline-block" 
+                                            onsubmit="confirmAction(event, 'Xóa Đại biểu {{ addslashes($guest->full_name) }}?', 'Dữ liệu khuôn mặt của đại biểu này cũng sẽ bị xóa.')">                                        @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="Xóa đại biểu">
+                                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                                            </button>
+                                        </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>
@@ -636,12 +638,13 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // ==========================================
     // LOGIC CHO MODAL CỔNG PHỤ (GATE SELECTION)
     // ==========================================
     let checkGateInterval;
-    const meetingId = {{ $meeting->id }};
+    window.currentMeetingId = {{ $meeting->id }};
     const gateListNames = ['Cổng 1', 'Cổng 2', 'Cổng 3', 'Cổng 4'];
 
     function openGateModal() {
@@ -669,7 +672,7 @@
     }
 
     function fetchActiveGates() {
-        fetch(`/api/meetings/${meetingId}/active-gates`)
+        fetch(`/api/meetings/${window.currentMeetingId}/active-gates`)
             .then(res => res.json())
             .then(data => {
                 const activeGates = data.active_gates || [];
@@ -853,31 +856,34 @@
         document.getElementById(elementId).classList.add('flex');
     }
 
-    //Thống kê
     // ==========================================
     // LOGIC THỐNG KÊ REALTIME (CHART.JS & AJAX)
     // ==========================================
-    let trafficChart;
+    let trafficChart = null;
+    let realtimeInterval = null;
+    const currentMeetingId = {{ $meeting->id }}; 
 
     function initTrafficChart() {
-        const ctx = document.getElementById('trafficChart').getContext('2d');
+        const canvas = document.getElementById('trafficChart');
+        if (!canvas) return; 
+
+        const ctx = canvas.getContext('2d');
         
-        // Cấu hình mảng màu Gradient cho biểu đồ
         let gradient = ctx.createLinearGradient(0, 0, 0, 200);
-        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)'); // Indigo-600
+        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)');
         gradient.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
 
         trafficChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: [], // Nhãn thời gian (VD: 14:00, 14:10)
+                labels: [], 
                 datasets: [{
                     label: 'Số lượt check-in',
                     data: [],
-                    borderColor: '#4f46e5', // Màu viền
-                    backgroundColor: gradient, // Màu nền gradient
+                    borderColor: '#4f46e5',
+                    backgroundColor: gradient,
                     borderWidth: 3,
-                    tension: 0.4, // Làm cong mượt đường line
+                    tension: 0.4,
                     fill: true,
                     pointBackgroundColor: '#ffffff',
                     pointBorderColor: '#4f46e5',
@@ -916,30 +922,34 @@
     }
 
     function fetchRealtimeStats() {
-        fetch(`/api/meetings/${meetingId}/realtime-stats`)
+        if (!document.getElementById('rt-checked-in')) return; 
+
+        fetch(`/api/meetings/${currentMeetingId}/realtime-stats`)
             .then(res => res.json())
             .then(data => {
-                // 1. Cập nhật Số liệu tổng quan
+                // Cập nhật số liệu chữ
                 document.getElementById('rt-checked-in').innerText = data.checked_in;
                 document.getElementById('rt-total-guests').innerText = data.total;
                 document.getElementById('rt-percentage').innerText = data.percentage + '%';
                 document.getElementById('rt-progress-bar').style.width = data.percentage + '%';
 
-                // 2. Cập nhật Biểu đồ
+                // Cập nhật biểu đồ
                 if (trafficChart) {
                     trafficChart.data.labels = data.chart_labels;
                     trafficChart.data.datasets[0].data = data.chart_data;
-                    trafficChart.update('none'); // Update 'none' để không bị nháy biểu đồ
+                    trafficChart.update('none'); 
                 }
             })
             .catch(err => console.error('Lỗi tải thống kê realtime:', err));
     }
 
-    // Khởi chạy khi trang Load xong
+    // KHỞI CHẠY KHI TRANG VỪA LOAD XONG
     document.addEventListener('DOMContentLoaded', () => {
         initTrafficChart();
-        fetchRealtimeStats(); // Gọi lần đầu ngay lập tức
-        setInterval(fetchRealtimeStats, 3000); // Tự động quét cập nhật mỗi 3 giây
+        fetchRealtimeStats(); 
+        
+        // Cập nhật tự động mỗi 3 giây
+        realtimeInterval = setInterval(fetchRealtimeStats, 3000); 
     });
 
     // ==========================================
@@ -1043,7 +1053,7 @@
             // printWindow.close(); // Mở dòng này nếu muốn in xong tự tắt tab
         }, 500);
     }
-    
+
     function confirmAction(event, title, text) {
         event.preventDefault(); // Chặn hành động mặc định
         const form = event.target; 

@@ -163,12 +163,7 @@ class MeetingController extends Controller
     // Cập nhật thông tin cuộc họp
     public function update(Request $request, Meeting $meeting)
     {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-
-        if (!$user->hasRole('Admin') && $meeting->user_id !== $user->id) {
-            abort(403, 'Bạn không có quyền quản lý cuộc họp này!');
-        }
+        $this->authorizeMeetingAction($meeting, 'meeting.edit');
         $request->validate([
             'title' => 'required|string|max:255',
             'start_time' => 'required|date',
@@ -191,12 +186,7 @@ class MeetingController extends Controller
     // Xóa cuộc họp (Hệ thống tự xóa guests theo ràng buộc cascade đã cài ở Migration)
     public function destroy(Meeting $meeting)
     {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-
-        if (!$user->hasRole('Admin') && $meeting->user_id !== $user->id) {
-            abort(403, 'Bạn không có quyền quản lý cuộc họp này!');
-        }
+        $this->authorizeMeetingAction($meeting, 'meeting.delete');
         $meeting->delete();
         return redirect()->route('meetings.index')->with('success', 'Đã xóa cuộc họp thành công!');
     }
@@ -930,5 +920,22 @@ class MeetingController extends Controller
         $response->headers->set('Cache-Control', 'max-age=0');
 
         return $response;
+    }
+
+    //Phân quyền
+    private function authorizeMeetingAction($meeting, $permissionName)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Admin tối cao hoặc Người tạo ra cuộc họp thì được phép
+        if ($user->hasRole('Admin') || $meeting->user_id === $user->id) {
+            return true;
+        }
+
+        // Nếu không phải Admin/Người tạo, thì phải có quyền cụ thể trong Ma trận
+        if (!$user->hasPermissionTo($permissionName)) {
+            abort(403, 'Bạn không có quyền thực hiện thao tác này trên hệ thống!');
+        }
     }
 }

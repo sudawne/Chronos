@@ -115,7 +115,7 @@
                 </div>
 
                 <div class="flex items-center gap-2 pt-4 border-t border-gray-100 mt-auto">
-                    <a href="{{ route('meetings.show', $meeting->id) }}" class="flex-1 py-2.5 bg-[#f3f6fd] hover:bg-[#5949be] text-[#5949be] hover:text-white font-bold text-sm rounded-xl text-center transition-colors flex items-center justify-center gap-2">
+                    <a href="{{ route('meetings.show', $meeting->id) }}" data-no-swup class="flex-1 py-2.5 bg-[#f3f6fd] hover:bg-[#5949be] text-[#5949be] hover:text-white font-bold text-sm rounded-xl text-center transition-colors flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-[18px]">settings_input_component</span> Bảng điều khiển
                     </a>
                     

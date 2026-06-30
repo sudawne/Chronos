@@ -56,9 +56,15 @@ Route::middleware(['auth'])->group(function () {
         ->name('meetings.store');
 
     Route::get('/meetings/{meeting}', [MeetingController::class, 'show'])->name('meetings.show');
-    Route::get('/meetings/{meeting}/edit', [MeetingController::class, 'edit'])->name('meetings.edit');
-    Route::put('/meetings/{meeting}', [MeetingController::class, 'update'])->name('meetings.update');
-    Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy'])->name('meetings.destroy');
+    Route::get('/meetings/{meeting}/edit', [MeetingController::class, 'edit'])
+        ->middleware('permission:meeting.edit')
+        ->name('meetings.edit');
+    Route::put('/meetings/{meeting}', [MeetingController::class, 'update'])
+        ->middleware('permission:meeting.edit')
+        ->name('meetings.update');
+    Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy'])
+        ->middleware('permission:meeting.delete')
+        ->name('meetings.destroy');
 
     // Các tính năng tiện ích của Cuộc họp
     Route::get('/meetings/{meeting}/welcome', [MeetingController::class, 'welcomeScreen'])->name('meetings.welcome');
@@ -68,7 +74,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/meetings/{meeting}/scan-qr', [MeetingController::class, 'scanQr'])->name('meetings.scan_qr');
     Route::post('/meetings/{meeting}/add-guest', [MeetingController::class, 'addGuest'])->name('meetings.add_guest');
     Route::post('/meetings/{meeting}/welcome-config', [MeetingController::class, 'updateWelcomeConfig'])->name('meetings.update_welcome_config');
-    Route::get('/meetings/{meeting}/designer', [App\Http\Controllers\MeetingController::class, 'designer'])->name('meetings.designer');
+    Route::get('/meetings/{meeting}/designer', [App\Http\Controllers\MeetingController::class, 'designer'])
+        ->middleware('permission:meeting.design')
+        ->name('meetings.designer');
     Route::post('/api/meetings/{meeting}/save-design', [App\Http\Controllers\MeetingController::class, 'saveDesign'])->name('api.save_design');
     Route::get('/meetings/{meeting}/game', [MeetingController::class, 'game'])->name('meetings.game');
     Route::post('/meetings/{meeting}/toggle-liveness', [\App\Http\Controllers\MeetingController::class, 'toggleLiveness'])->name('meetings.toggle_liveness');
@@ -77,14 +85,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/meetings/{meeting}/realtime-stats', [\App\Http\Controllers\MeetingController::class, 'realtimeStats']);
     Route::get('/meetings/{meeting}/export-guests', [\App\Http\Controllers\MeetingController::class, 'exportGuests'])->name('meetings.export_guests');
     
-    // (Dành cho chức năng cập nhật ảnh nếu bạn chưa khai báo)
+    // Quản lý đại biểu
     Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace'])->name('guests.update_face');
-    // Quản lý Đại biểu
-    // Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace']);
 
     // Các API nội bộ
     Route::get('/start-ai-api', [MeetingController::class, 'startApiServer'])->name('api.start_server');
-    Route::get('/api/meetings/{meeting}/latest-checkin', [MeetingController::class, 'latestCheckin'])->name('api.latest_checkin');
+    Route::get('/api/meetings/{meeting}/latest-checkin', [MeetingController::class, 'latestCheckin'])
+        ->middleware('permission:attendance.manage')
+        ->name('api.latest_checkin');
     Route::post('/api/meetings/process-qr', [MeetingController::class, 'processQrScan'])->name('api.process_qr');
     Route::get('/api/global-search', [MeetingController::class, 'globalSearch']);
     // API lấy danh sách cổng đang hoạt động và API gửi nhịp tim

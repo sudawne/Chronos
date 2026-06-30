@@ -10,86 +10,127 @@ use Illuminate\Support\Facades\Auth;
 
 class AdminUserController extends Controller
 {
-    // HÀM KIỂM TRA QUYỀN TRUY CẬP TRANG QUẢN TRỊ
-    private function checkAdmin() 
+    // [ĐÃ SỬA]: Chuyển từ checkAdmin cứng nhắc sang checkPermission linh hoạt
+    private function checkPermission($permissionCode) 
     {
-        if (!Auth::check()) {
-            abort(403, 'Từ chối truy cập! Vui lòng đăng nhập.');
-        }
-
+        if (!Auth::check()) abort(403, 'Từ chối truy cập! Vui lòng đăng nhập.');
+        
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        
+        // Nếu là Admin thì cho qua, nếu không phải Admin thì kiểm tra xem có quyền lẻ tương ứng không
+        if (!$user->hasRole('Admin') && !$user->can($permissionCode)) {
+            abort(403, "Từ chối truy cập! Bạn cần có quyền [{$permissionCode}] để thực hiện thao tác này.");
+        }
+    }
 
-        if (!$user->hasRole('Admin')) {
-            abort(403, 'Từ chối truy cập! Chỉ Admin mới được thực hiện thao tác này.');
+    private function getModules()
+    {
+        return [
+            'Quản trị Hệ thống' => [
+                'Xem tài khoản' => 'user.view', 
+                'Thêm mới' => 'user.create', 
+                'Chỉnh sửa' => 'user.edit', 
+                'Xóa' => 'user.delete',
+                // [ĐÃ THÊM]: Quyền Custom theo yêu cầu của bạn
+                'Phân quyền nâng cao (Custom)' => 'user.custom' 
+            ],
+            'Quản lý Sự kiện' => ['Xem kho lưu trữ' => 'meeting.view', 'Tạo sự kiện' => 'meeting.create', 'Thiết kế Welcome' => 'meeting.design', 'Xóa sự kiện' => 'meeting.delete'],
+            'Giám sát Điểm danh' => ['Xem thống kê Dashboard' => 'attendance.view', 'Bật Camera & AI' => 'attendance.manage', 'Xuất báo cáo Excel' => 'attendance.export']
+        ];
+    }
+
+    private function ensurePermissionsExist($modules)
+    {
+        foreach ($modules as $group => $actions) {
+            foreach ($actions as $label => $code) {
+                Permission::firstOrCreate([
+                    'name' => $code,
+                    'guard_name' => 'web'
+                ]);
+            }
         }
     }
 
     // ==========================================
-    // PHẦN 1: QUẢN LÝ TỪNG USER (users/index & edit)
+    // PHẦN 1: QUẢN LÝ TỪNG USER
     // ==========================================
     public function index()
     {
-        $this->checkAdmin();
+        // Yêu cầu quyền xem user
+        $this->checkPermission('user.view'); 
         $users = User::with('roles', 'permissions')->paginate(15);
-        
-        // Trỏ đúng vào thư mục: resources/views/admin/users/index.blade.php
-        return view('admin.users.index', compact('users')); 
+        return view('admin.users.index', compact('users'));
     }
 
     public function edit(User $user)
     {
-        $this->checkAdmin();
+        // Yêu cầu quyền sửa user
+        $this->checkPermission('user.edit'); 
         $roles = Role::all();
-        $permissions = Permission::all();
+        $modules = $this->getModules(); 
         
-        // Trỏ đúng vào thư mục: resources/views/admin/users/edit.blade.php
-        return view('admin.users.edit', compact('user', 'roles', 'permissions'));
+        $this->ensurePermissionsExist($modules);
+        
+        return view('admin.users.edit', compact('user', 'roles', 'modules'));
     }
 
     public function update(Request $request, User $user)
     {
-        $this->checkAdmin();
+        // Yêu cầu quyền sửa user
+        $this->checkPermission('user.edit'); 
         
-        // Cập nhật Nhóm chức vụ (Quyền to) & Tính năng lẻ (Quyền nhỏ)
+        // 1. Cập nhật nhóm Chức vụ
         $user->syncRoles($request->input('roles', []));
-        $user->syncPermissions($request->input('permissions', []));
+        
+        // 2. Tẩy não bộ nhớ Cache
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        $user->refresh(); 
+        
+        // 3. Phân tách quyền độc lập (Custom)
+        $rolePermissions = $user->getPermissionsViaRoles()->pluck('name')->toArray();
+        $inputPermissions = $request->input('permissions', []);
+        $permissionsToSync = array_diff($inputPermissions, $rolePermissions);
+        
+        $user->syncPermissions($permissionsToSync);
 
-        return redirect()->route('admin.users.index')->with('success', 'Đã cập nhật phân quyền cho ' . $user->name . ' thành công!');
+        // ==============================================================
+        // [LƯỚI BẢO VỆ]: Tránh việc tự "đá" chính mình ra khỏi hệ thống
+        // ==============================================================
+        if (Auth::id() === $user->id) {
+            // Nếu bạn vừa tự bỏ role Admin và cũng quên tích quyền Xem/Sửa tài khoản
+            if (!$user->hasRole('Admin') && !$user->hasPermissionTo('user.view')) {
+                // Hệ thống sẽ tự động ép cấp quyền để bạn không bị văng ra trang 403
+                $user->givePermissionTo(['user.view', 'user.edit', 'user.custom']);
+            }
+        }
+
+        return redirect()->route('admin.users.index')->with('success', 'Cập nhật phân quyền cho ' . $user->name . ' thành công!');
     }
 
     // ==========================================
-    // PHẦN 2: QUẢN LÝ MA TRẬN NHÓM (permissions/matrix)
+    // PHẦN 2: QUẢN LÝ MA TRẬN NHÓM
     // ==========================================
     public function matrix()
     {
-        $this->checkAdmin();
+        // Sử dụng quyền custom vừa tạo để bảo vệ khu vực Ma trận
+        $this->checkPermission('user.custom'); 
         $roles = Role::all();
-        
-        // Định nghĩa các nhóm quyền hiển thị trên bảng Ma trận
-        $modules = [
-            'Quản trị Hệ thống' => ['Xem tài khoản' => 'user.view', 'Sửa tài khoản' => 'user.edit', 'Xóa tài khoản' => 'user.delete'],
-            'Quản lý Sự kiện' => ['Xem kho lưu trữ' => 'meeting.view', 'Tạo sự kiện' => 'meeting.create', 'Thiết kế Welcome' => 'meeting.design', 'Xóa sự kiện' => 'meeting.delete'],
-            'Giám sát Điểm danh' => ['Xem thống kê Dashboard' => 'attendance.view', 'Bật Camera & AI' => 'attendance.manage', 'Xuất báo cáo Excel' => 'attendance.export']
-        ];
+        $modules = $this->getModules();
 
-        // Trỏ đúng vào thư mục: resources/views/admin/permissions/matrix.blade.php
+        $this->ensurePermissionsExist($modules);
+
         return view('admin.permissions.matrix', compact('roles', 'modules'));
     }
 
     public function matrixUpdate(Request $request)
     {
-        $this->checkAdmin();
-        
-        $roles = Role::all();
+        $this->checkPermission('user.custom');
         $rolesData = $request->input('roles', []);
-
-        foreach ($roles as $role) {
-            // Lấy danh sách checkbox, nếu không tick thì trả về mảng rỗng
-            $permissionsToSync = $rolesData[$role->name] ?? [];
-            $role->syncPermissions($permissionsToSync);
+        
+        foreach (Role::all() as $role) {
+            $role->syncPermissions($rolesData[$role->name] ?? []);
         }
-
-        return redirect()->back()->with('success', 'Lưu cấu hình Ma trận Phân quyền thành công!');
+        return redirect()->back()->with('success', 'Đã cập nhật Ma trận Phân quyền thành công!');
     }
 }

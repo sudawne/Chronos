@@ -14,8 +14,10 @@
             <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Cấp quyền riêng lẻ cho từng người hoặc cấu hình nhóm</p>
         </div>
         
-        <a href="{{ route('admin.matrix.index') }}" class="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-sm transition-all font-bold">
-            <span class="material-symbols-outlined">grid_view</span> Cấu hình Ma Trận Nhóm
+        <a href="{{ route('admin.matrix.index') }}" 
+        data-no-swup
+        class="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-sm transition-all font-bold">
+            <span class="material-symbols-outlined">grid_view</span> Cập nhật Ma Trận Nhóm
         </a>
     </div>
 
@@ -67,7 +69,7 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 text-center">
-                            <a href="{{ route('admin.users.edit', $u->id) }}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg font-semibold transition-colors">
+                            <a href="{{ route('admin.users.edit', $u->id) }}" data-no-swup class="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg font-semibold transition-colors">
                                 <span class="material-symbols-outlined text-[18px]">tune</span> Cấp quyền
                             </a>
                         </td>
