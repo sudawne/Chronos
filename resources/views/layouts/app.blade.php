@@ -187,10 +187,36 @@
                     <button onclick="toggleSettingsPanel()" title="Cài đặt hệ thống" class="p-2.5 text-gray-500 dark:text-slate-300 bg-white dark:bg-[#151A2D] hover:bg-indigo-50 dark:hover:bg-indigo-500/20 hover:text-[#5949be] dark:hover:text-indigo-400 rounded-full shadow-sm border border-gray-100 dark:border-white/5 transition-colors flex items-center justify-center">
                         <span class="material-symbols-outlined text-[22px]">tune</span>
                     </button>
-                    <button class="p-2.5 text-gray-500 dark:text-slate-300 bg-white dark:bg-[#151A2D] hover:bg-indigo-50 dark:hover:bg-indigo-500/20 hover:text-[#5949be] dark:hover:text-indigo-400 rounded-full shadow-sm border border-gray-100 dark:border-white/5 transition-colors relative flex items-center justify-center">
-                        <span class="material-symbols-outlined text-[22px]">notifications</span>
-                        <span class="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#151A2D]"></span>
-                    </button>
+                    
+                    <div class="relative z-[100]">
+                        <button id="notification-btn" data-no-swup class="p-2.5 text-gray-500 dark:text-slate-300 bg-white dark:bg-[#151A2D] hover:bg-indigo-50 dark:hover:bg-indigo-500/20 hover:text-[#5949be] dark:hover:text-indigo-400 rounded-full shadow-sm border border-gray-100 dark:border-white/5 transition-all flex items-center justify-center group focus:outline-none">
+                            <span class="material-symbols-outlined text-[22px] group-hover:rotate-12 transition-transform duration-300">notifications</span>
+                            <span id="notification-badge" class="hidden absolute top-2 right-2.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white dark:border-[#151A2D]">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            </span>
+                        </button>
+
+                        <div id="notification-dropdown" class="absolute right-0 mt-3 w-[320px] sm:w-[380px] bg-white/95 dark:bg-[#151A2D]/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-100 dark:border-white/10 hidden overflow-hidden origin-top-right transition-all duration-300 transform scale-95 opacity-0">
+                            <div class="px-5 py-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-extrabold text-slate-800 dark:text-white tracking-wide">Thông báo</span>
+                                    <span id="notification-count" class="hidden px-2 py-0.5 text-[10px] bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 rounded-md font-black uppercase tracking-wider">0 Mới</span>
+                                </div>
+                                <button id="mark-all-read" class="text-xs font-bold text-[#5949be] dark:text-indigo-400 hover:text-[#4a3ca3] dark:hover:text-indigo-300 transition-colors flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[16px]">done_all</span> Đọc tất cả
+                                </button>
+                            </div>
+
+                            <div id="notification-list" class="max-h-[360px] overflow-y-auto divide-y divide-slate-50 dark:divide-white/5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full">
+                                <div class="p-8 text-center flex flex-col items-center justify-center space-y-3">
+                                    <div class="w-10 h-10 rounded-full bg-indigo-50 dark:bg-[#0B1120] flex items-center justify-center text-[#5949be] dark:text-indigo-400 animate-spin">
+                                        <span class="material-symbols-outlined">sync</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 dark:text-slate-500 font-medium">Đang đồng bộ...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -512,6 +538,122 @@
                 }
             });
         }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const notifBtn = document.getElementById('notification-btn');
+            const notifDropdown = document.getElementById('notification-dropdown');
+            const badge = document.getElementById('notification-badge');
+            const countLabel = document.getElementById('notification-count');
+            const notifList = document.getElementById('notification-list');
+            const markReadBtn = document.getElementById('mark-all-read');
+
+            if (!notifBtn || !notifDropdown) return;
+
+            // Đóng/mở có hiệu ứng Animation
+            function toggleDropdown() {
+                const isHidden = notifDropdown.classList.contains('hidden');
+                if (isHidden) {
+                    notifDropdown.classList.remove('hidden');
+                    setTimeout(() => {
+                        notifDropdown.classList.remove('scale-95', 'opacity-0');
+                        notifDropdown.classList.add('scale-100', 'opacity-100');
+                    }, 10);
+                    fetchNotifications();
+                } else {
+                    notifDropdown.classList.remove('scale-100', 'opacity-100');
+                    notifDropdown.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => notifDropdown.classList.add('hidden'), 300);
+                }
+            }
+
+            notifBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleDropdown();
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!notifBtn.contains(e.target) && !notifDropdown.contains(e.target)) {
+                    if (!notifDropdown.classList.contains('hidden')) {
+                        notifDropdown.classList.remove('scale-100', 'opacity-100');
+                        notifDropdown.classList.add('scale-95', 'opacity-0');
+                        setTimeout(() => notifDropdown.classList.add('hidden'), 300);
+                    }
+                }
+            });
+
+            // Lấy dữ liệu API
+            function fetchNotifications() {
+                fetch('/api/notifications/unread')
+                    .then(res => res.json())
+                    .then(data => {
+                        const unreadCount = data.unread_count || 0;
+                        
+                        if (unreadCount > 0) {
+                            badge.classList.remove('hidden');
+                            countLabel.classList.remove('hidden');
+                            countLabel.innerText = unreadCount + ' Mới';
+                        } else {
+                            badge.classList.add('hidden');
+                            countLabel.classList.add('hidden');
+                        }
+
+                        if (!data.notifications || data.notifications.length === 0) {
+                            notifList.innerHTML = `
+                                <div class="py-12 px-6 text-center flex flex-col items-center justify-center">
+                                    <div class="w-14 h-14 rounded-full bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center mb-3 text-slate-400">
+                                        <span class="material-symbols-outlined text-[26px]">notifications_off</span>
+                                    </div>
+                                    <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Hộp thư trống</h3>
+                                    <p class="text-xs text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">Bạn đã đọc hết mọi thông báo.</p>
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        notifList.innerHTML = data.notifications.map(n => `
+                            <a href="${n.link}" class="block p-4 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors relative group bg-indigo-50/30 dark:bg-indigo-500/5">
+                                <div class="absolute top-5 right-4 w-2 h-2 rounded-full bg-[#5949be] dark:bg-indigo-400 ring-4 ring-[#5949be]/10 dark:ring-indigo-400/10 opacity-80 group-hover:opacity-100 transition-opacity"></div>
+                                
+                                <div class="flex gap-3.5 pr-4">
+                                    <div class="flex-shrink-0 mt-0.5">
+                                        <div class="w-10 h-10 rounded-xl ${n.bg_color} bg-opacity-20 dark:bg-opacity-10 flex items-center justify-center shadow-inner transition-transform group-hover:scale-105 duration-300 border border-current border-opacity-10">
+                                            <span class="material-symbols-outlined text-[20px] ${n.text_color}">${n.icon}</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0 space-y-1">
+                                        <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-[#5949be] dark:group-hover:text-indigo-400 transition-colors">${n.title}</h4>
+                                        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${n.message}</p>
+                                        <div class="pt-1 flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                            <span class="material-symbols-outlined text-[12px]">schedule</span>
+                                            ${n.time_ago}
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        `).join('');
+                    }).catch(err => console.error("Lỗi thông báo:", err));
+            }
+
+            if (markReadBtn) {
+                markReadBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                    if (!tokenMeta) return;
+
+                    fetch('/api/notifications/read-all', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': tokenMeta.content,
+                            'Content-Type': 'application/json'
+                        }
+                    }).then(() => fetchNotifications());
+                });
+            }
+
+            fetchNotifications();
+            setInterval(fetchNotifications, 30000); 
+        });
     </script>
 </body>
 </html>

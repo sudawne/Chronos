@@ -18,6 +18,8 @@ use Exception;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Notifications\SystemAlert;
+use Illuminate\Support\Facades\Notification;
 
 class MeetingController extends Controller
 {
@@ -113,6 +115,19 @@ class MeetingController extends Controller
                 }
             }
         }
+
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if ($user) {
+        // Dùng Notification::send thay vì $user->notify
+        Notification::send($user, new SystemAlert([
+            'title'      => 'Tạo sự kiện thành công!',
+            'message'    => 'Cuộc họp đã được lên lịch thành công.',
+            'icon'       => 'event_available',
+            'bg_color'   => 'bg-emerald-500',
+            'text_color' => 'text-emerald-600 dark:text-emerald-400',
+            'link'       => route('meetings.index') // Tạm thời dẫn về index cho an toàn
+        ]));
+}
 
         // 5. Kết luận
         $msg = "Khởi tạo thành công! Đã nạp AI cho $successCount khách. Lỗi: $errorCount.";

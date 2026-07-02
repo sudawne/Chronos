@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\NotificationController;
 
 // ==========================================
 // 1. KHU VỰC CHƯA ĐĂNG NHẬP (GUEST)
@@ -112,5 +113,9 @@ Route::middleware(['auth'])->group(function () {
         // 2. Quản lý Ma trận chức vụ (Nhóm - Roles)
         Route::get('/admin/permissions/matrix', [AdminUserController::class, 'matrix'])->name('admin.matrix.index');
         Route::post('/admin/permissions/matrix/update', [AdminUserController::class, 'matrixUpdate'])->name('admin.permissions.matrix.update');
+
+        // 3. Quản lý thông báo hệ thống
+        Route::get('/api/notifications/unread', [NotificationController::class, 'getUnread'])->name('notifications.unread');
+        Route::post('/api/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
     });
 });
