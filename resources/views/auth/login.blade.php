@@ -58,10 +58,10 @@
         
         <div class="relative z-10 max-w-md text-center md:text-left space-y-6">
             <h1 class="font-headline text-4xl md:text-6xl font-extrabold text-white leading-tight tracking-tight reveal">
-                CHRONOS AI
+                CHRONOS
             </h1>
             <p class="text-base md:text-lg text-indigo-100 opacity-90 reveal delay-1">
-                Hệ thống điểm danh thông minh tích hợp nhận diện khuôn mặt và quét QR Code theo thời gian thực.
+                Hệ thống quản lý và điểm danh tự động theo thời gian thực.
             </p>
             <div class="pt-4 hidden md:flex justify-center md:justify-start reveal delay-2">
                 <div class="relative w-64 h-64 rounded-3xl overflow-hidden shadow-2xl animate-float border-4 border-white/10">
@@ -98,7 +98,7 @@
 
             <div id="login-section" class="space-y-6 reveal delay-1">
                 <div>
-                    <h2 class="font-headline text-2xl font-bold text-on-surface">Xin chào Thầy/Cô!</h2>
+                    <h2 class="font-headline text-2xl font-bold text-on-surface">Chào mừng bạn</h2>
                     <p class="text-on-surface-variant text-sm mt-1">Vui lòng nhập thông tin để truy cập hệ thống</p>
                 </div>
 
@@ -108,7 +108,7 @@
                         <label class="text-xs font-bold text-on-surface-variant px-1">Địa chỉ Email</label>
                         <div class="relative">
                             <span class="material-symbols-outlined text-xl absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">mail</span>
-                            <input class="block w-full pl-11 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-primary/10 focus:border-primary/30 transition-all outline-none" name="email" value="{{ old('email') }}" placeholder="name@vnkgu.edu.vn" type="email" required/>
+                            <input class="block w-full pl-11 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-primary/10 focus:border-primary/30 transition-all outline-none" name="email" value="{{ old('email') }}" placeholder="nguyen@vnkgu.edu.vn" type="email" required/>
                         </div>
                     </div>
 
@@ -122,10 +122,7 @@
 
                     <div class="flex items-center justify-between text-xs font-semibold">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer" type="checkbox" name="remember"/>
-                            <span class="text-on-surface-variant">Duy trì đăng nhập</span>
                         </label>
-                        <a class="text-primary hover:text-primary-dim transition-colors" href="#">Quên mật khẩu?</a>
                     </div>
 
                     <button class="w-full py-3.5 mt-2 rounded-xl signature-gradient text-white font-headline font-bold text-sm hover:scale-[1.02] transition-all shadow-md shadow-primary/25" type="submit">
@@ -137,7 +134,7 @@
             <div id="register-section" class="space-y-6 hidden">
                 <div>
                     <h2 class="font-headline text-2xl font-bold text-on-surface">Đăng ký tài khoản</h2>
-                    <p class="text-on-surface-variant text-sm mt-1">Khởi tạo tài khoản quản trị mới</p>
+                    <p class="text-on-surface-variant text-sm mt-1">Khởi tạo tài khoản mới</p>
                 </div>
 
                 <form action="{{ route('register') }}" method="POST" class="space-y-4">
@@ -154,7 +151,7 @@
                         <label class="text-xs font-bold text-on-surface-variant px-1">Địa chỉ Email</label>
                         <div class="relative">
                             <span class="material-symbols-outlined text-xl absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">mail</span>
-                            <input class="block w-full pl-11 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-primary/10 focus:border-primary/30 transition-all outline-none" name="email" value="{{ old('email') }}" placeholder="username@vnkgu.edu.vn" type="email" required/>
+                            <input class="block w-full pl-11 pr-4 py-3 bg-white/50 border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-primary/10 focus:border-primary/30 transition-all outline-none" name="email" value="{{ old('email') }}" placeholder="nguyen@vnkgu.edu.vn" type="email" required/>
                         </div>
                     </div>
 

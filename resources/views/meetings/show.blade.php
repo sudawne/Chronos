@@ -87,6 +87,14 @@
                             <span class="text-sm font-medium">Gửi Vé</span>
                         </button>
                     </form>
+                    <form action="{{ route('meetings.send-photo-requests', $meeting->id) }}" method="POST" class="inline m-0 flex-1 sm:flex-none"
+                        onsubmit="confirmAction(event, 'Gửi yêu cầu bổ sung ảnh?', 'Hệ thống sẽ quét danh sách và gửi email cho các đại biểu chưa nạp dữ liệu khuôn mặt. Bạn chắc chắn muốn gửi chứ?')">
+                        @csrf
+                        <button type="submit" class="w-full flex justify-center items-center gap-2 px-3 py-2 bg-transparent text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-xl transition-all duration-300 active:scale-95">
+                            <span class="material-symbols-outlined text-[18px] text-teal-500">add_a_photo</span>
+                            <span class="text-sm font-medium">Nhắc bổ sung ảnh</span>
+                        </button>
+                    </form>
                 </div>
             </div>
             

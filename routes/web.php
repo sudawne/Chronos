@@ -103,6 +103,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/welcome-templates', [MeetingController::class, 'getTemplates'])->name('api.get_templates');
     Route::post('/api/welcome-templates', [MeetingController::class, 'saveTemplate'])->name('api.save_template');
     Route::delete('/api/welcome-templates/{id}', [MeetingController::class, 'deleteTemplate'])->name('api.delete_template');
+
+    // Quản lý ảnh đại biểu
+    Route::get('/meetings/{meeting}/guests/{guest}/photo', [App\Http\Controllers\MeetingController::class, 'guestPhotoForm'])
+        ->name('guest.photo.form')->middleware('signed');
+
+    Route::post('/meetings/{meeting}/guests/{guest}/photo', [App\Http\Controllers\MeetingController::class, 'guestPhotoUpload'])
+        ->name('guest.photo.upload')->middleware('signed');
+        
+    Route::post('/meetings/{meeting}/send-photo-requests', [App\Http\Controllers\MeetingController::class, 'sendPhotoRequests'])
+        ->name('meetings.send-photo-requests');
     // Admin: Quản lý User (CRUD)
     Route::middleware(['auth'])->group(function () { 
         // 1. Quản lý phân quyền Cá nhân (User)

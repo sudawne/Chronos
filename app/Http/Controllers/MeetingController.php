@@ -345,6 +345,37 @@ class MeetingController extends Controller
         return redirect()->back()->with('success', "Đã gửi thành công $count vé mời QR Code qua Email!");
     }
 
+    // Gửi mail yêu cầu cung cấp ảnh cho những người còn thiếu
+    public function sendPhotoRequests(Meeting $meeting)
+    {
+        // 1. Chỉ lấy khách CÓ EMAIL và CHƯA CÓ VECTOR KHUÔN MẶT
+        $guests = $meeting->guests()
+            ->whereNotNull('email')
+            ->whereNull('face_vector')
+            ->get();
+            
+        $count = 0;
+
+        // 2. Vòng lặp gửi mail
+        foreach ($guests as $guest) {
+            try {
+                // Tạo link bảo mật Signed Route riêng cho từng khách
+                $secureUrl = \Illuminate\Support\Facades\URL::signedRoute('guest.photo.form', [
+                    'meeting' => $meeting->id, 
+                    'guest'   => $guest->id
+                ]);
+
+                // Gửi email (Chúng ta sẽ tạo class RequestPhotoMail ở Bước 3)
+                Mail::to($guest->email)->send(new \App\Mail\RequestPhotoMail($guest, $meeting, $secureUrl));
+                $count++;
+            } catch (\Exception $e) {
+                Log::error("Lỗi gửi mail yêu cầu ảnh cho " . $guest->email . ": " . $e->getMessage());
+            }
+        }
+
+        return redirect()->back()->with('success', "Đã gửi thành công $count email yêu cầu cập nhật ảnh khuôn mặt!");
+    }
+
     // Trả về giao diện Quét QR
     public function scanQr(Meeting $meeting)
     {
@@ -447,6 +478,48 @@ class MeetingController extends Controller
         }
 
         return redirect()->back()->with('success', 'Đã thêm đại biểu ' . $guest->full_name . ' thành công! Vui lòng cập nhật ảnh nhận diện sau.');
+    }
+
+    // 1. Hiển thị form cho khách hàng tự chụp ảnh
+    public function guestPhotoForm(Request $request, Meeting $meeting, Guest $guest)
+    {
+        if ($guest->meeting_id !== $meeting->id) abort(404);
+        
+        return view('guests.upload_photo', compact('meeting', 'guest'));
+    }
+
+    // 2. Nhận ảnh từ khách, lưu và nạp vào AI
+    public function guestPhotoUpload(Request $request, Meeting $meeting, Guest $guest)
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120', // Tối đa 5MB
+        ]);
+
+        $image = $request->file('photo');
+        $filename = time() . '_guest_' . $guest->id . '.' . $image->getClientOriginalExtension();
+        
+        // Lưu ảnh vào ổ cứng
+        $image->storeAs("meetings/{$meeting->id}/faces", $filename, 'public');
+        $guest->update(['image_filename' => $filename]);
+
+        try {
+            // Gửi sang Python AI để lấy Vector khuôn mặt
+            $imagePath = storage_path("app/public/meetings/{$meeting->id}/faces/{$filename}");
+            $response = \Illuminate\Support\Facades\Http::timeout(15)->attach(
+                'file', file_get_contents($imagePath), $filename
+            )->post('http://localhost:8001/register_face');
+
+            if ($response->successful() && $response['status'] === 'success') {
+                $binaryVector = pack('f*', ...$response['vector']);
+                $guest->update(['face_vector' => $binaryVector]);
+                
+                return back()->with('success', 'Tuyệt vời! Khuôn mặt của bạn đã được AI ghi nhận thành công.');
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Lỗi AI khi khách tự up ảnh: " . $e->getMessage());
+        }
+
+        return back()->with('error', 'Không thể nhận diện khuôn mặt. Vui lòng chụp lại ảnh khác sáng và rõ nét hơn.');
     }
 
     public function globalSearch(Request $request)
