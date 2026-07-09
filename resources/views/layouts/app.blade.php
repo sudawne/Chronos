@@ -107,7 +107,7 @@
                 ? 'relative bg-[#f3f6fd] dark:bg-[#0B1120] text-[#5949be] dark:text-indigo-400 rounded-l-[1.5rem] ml-4 py-4 flex items-center pl-7 before:absolute before:top-[-20px] before:right-0 before:w-5 before:h-5 before:rounded-br-[20px] before:shadow-[5px_5px_0_1px_#f3f6fd] dark:before:shadow-[5px_5px_0_1px_#0B1120] after:absolute after:bottom-[-20px] after:right-0 after:w-5 after:h-5 after:rounded-tr-[20px] after:shadow-[5px_-5px_0_1px_#f3f6fd] dark:after:shadow-[5px_-5px_0_1px_#0B1120] z-10' 
                 : 'flex items-center pl-7 text-indigo-100/70 dark:text-slate-400 py-4 ml-4 transition-all duration-300 hover:text-white dark:hover:text-indigo-300 hover:translate-x-2' }}">
                 <span class="material-symbols-outlined flex-shrink-0" style="{{ request()->routeIs('meetings.create') ? 'font-variation-settings: \'FILL\' 1;' : '' }}">add_circle</span>
-                <span class="font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 max-w-[150px] ml-4 md:ml-0 md:opacity-0 md:max-w-0 group-[.is-expanded]/sidebar:md:ml-4 group-[.is-expanded]/sidebar:md:opacity-100 group-[.is-expanded]/sidebar:md:max-w-[150px]">Tạo cuộc họp</span>
+                <span class="font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 max-w-[150px] ml-4 md:ml-0 md:opacity-0 md:max-w-0 group-[.is-expanded]/sidebar:md:ml-4 group-[.is-expanded]/sidebar:md:opacity-100 group-[.is-expanded]/sidebar:md:max-w-[150px]">Tạo sự kiện</span>
             </a>
             @endcan
 
@@ -184,6 +184,11 @@
 
                 <div class="hidden sm:block w-px h-8 bg-gray-200/80 dark:bg-white/10 mx-1"></div>
                 <div class="flex items-center gap-2.5">
+                    @if(auth()->user()->hasRole('Admin'))
+                        <a href="{{ route('meetings.trashed') }}" class="p-2.5 text-gray-500 dark:text-slate-300 bg-white dark:bg-[#151A2D] hover:bg-indigo-50 dark:hover:bg-indigo-500/20 hover:text-[#5949be] dark:hover:text-indigo-400 rounded-full shadow-sm border border-gray-100 dark:border-white/5 transition-colors flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[22px]">delete</span>
+                        </a>
+                    @endif
                     <button onclick="toggleSettingsPanel()" title="Cài đặt hệ thống" class="p-2.5 text-gray-500 dark:text-slate-300 bg-white dark:bg-[#151A2D] hover:bg-indigo-50 dark:hover:bg-indigo-500/20 hover:text-[#5949be] dark:hover:text-indigo-400 rounded-full shadow-sm border border-gray-100 dark:border-white/5 transition-colors flex items-center justify-center">
                         <span class="material-symbols-outlined text-[22px]">tune</span>
                     </button>

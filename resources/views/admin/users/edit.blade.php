@@ -30,7 +30,7 @@
                 <img src="{{ $user->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode($user->name) }}" class="w-8 h-8 rounded border border-gray-200">
                 Phân quyền: {{ $user->name }}
             </h1>
-            <p class="text-gray-500 text-sm mt-1">Gán chức vụ (Quyền to) và cấp các tính năng bổ sung (Quyền nhỏ) cho nhân sự này.</p>
+            <p class="text-gray-500 text-sm mt-1">Gán chức vụ và cấp các tính năng bổ sung cho nhân sự này.</p>
         </div>
         
         <button type="button" onclick="document.getElementById('user-permission-form').submit();" class="px-6 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors shadow-sm text-sm">
@@ -44,7 +44,7 @@
         {{-- PHẦN 1: QUYỀN TO (CHỨC VỤ ACT AS TEMPLATE) --}}
         <div class="mb-10">
             <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 border-l-4 border-purple-500 pl-3">
-                1. Gán Chức Vụ (Role)
+                1. Gán Chức Vụ
             </h3>
             <table class="w-full text-left border-collapse border border-gray-100 rounded-lg overflow-hidden">
                 <tbody class="divide-y divide-gray-100">
@@ -68,10 +68,8 @@
         {{-- PHẦN 2: QUYỀN NHỎ --}}
         <div>
             <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-2 border-l-4 border-green-500 pl-3">
-                2. Tính năng độc lập (Direct Permissions)
+                2. Tính năng độc lập
             </h3>
-            <p class="text-[12px] text-gray-500 mb-4 pl-4">Khi tích vào Chức vụ ở trên, các quyền sẽ tự động được chọn. <br>Nếu bạn <b>chủ động bỏ tích</b> một quyền bất kỳ, chức vụ ở trên sẽ tự động bị bỏ tích do không còn trùng khớp.</p>
-            
             <div class="border border-gray-100 rounded-lg overflow-hidden">
                 <table class="w-full text-left border-collapse">
                     <tbody class="divide-y divide-gray-100">

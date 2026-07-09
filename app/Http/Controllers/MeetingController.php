@@ -1026,4 +1026,116 @@ class MeetingController extends Controller
             abort(403, 'Bạn không có quyền thực hiện thao tác này trên hệ thống!');
         }
     }
+
+    // ==========================================
+    // THÙNG RÁC (RECYCLE BIN)
+    // ==========================================
+    
+    // 1. Hiển thị danh sách đã xóa mềm
+    public function trashed()
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Chỉ Admin mới được vào xem Thùng rác
+        if (!$user->hasRole('Admin')) {
+            abort(403, 'Bạn không có quyền truy cập Thùng rác!');
+        }
+
+        // Lấy danh sách sự kiện đã xóa (onlyTrashed)
+        $meetings = Meeting::onlyTrashed()->with('user')->orderBy('deleted_at', 'desc')->paginate(10);
+        
+        return view('meetings.trashed', compact('meetings'));
+    }
+
+    // 2. Khôi phục sự kiện
+    public function restore($id)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        if (!$user->hasRole('Admin')) abort(403, 'Bạn không có quyền thực hiện thao tác này!');
+
+        // Tìm sự kiện trong thùng rác và khôi phục
+        $meeting = Meeting::onlyTrashed()->findOrFail($id);
+        $meeting->restore();
+
+        return redirect()->route('meetings.trashed')->with('success', 'Đã khôi phục sự kiện: ' . $meeting->title);
+    }
+
+    // 3. Xóa vĩnh viễn (Hard Delete)
+    public function forceDelete($id)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        if (!$user->hasRole('Admin')) abort(403, 'Bạn không có quyền thực hiện thao tác này!');
+
+        $meeting = Meeting::onlyTrashed()->findOrFail($id);
+        
+        // (Tùy chọn) Xóa thư mục ảnh khuôn mặt của cuộc họp này trong ổ cứng trước khi xóa database
+        \Illuminate\Support\Facades\Storage::disk('public')->deleteDirectory("meetings/{$meeting->id}");
+
+        // Xóa cứng khỏi Database
+        $meeting->forceDelete();
+
+        return redirect()->route('meetings.trashed')->with('success', 'Đã xóa vĩnh viễn sự kiện ra khỏi hệ thống!');
+    }
+
+    // ==========================================
+    // XÁC THỰC KHUÔN MẶT (FACE VALIDATION)
+    // ==========================================
+    public function validateFacesView($id)
+    {
+        $meeting = Meeting::findOrFail($id);
+        
+        $guests = Guest::where('meeting_id', $id)
+                    //    ->whereNull('face_vector')
+                       ->get();
+
+        return view('meetings.validate_faces', compact('meeting', 'guests'));
+    }
+
+    public function processValidation(Request $request, $id)
+    {
+        $guestId = $request->input('guest_id');
+        $guest = Guest::where('meeting_id', $id)->findOrFail($guestId);
+        
+        // 1. Kiểm tra đại biểu ĐÃ CÓ ẢNH chưa (Chống lỗi crash khi get_file_contents)
+        if (empty($guest->image_filename)) {
+            return response()->json(['status' => 'error', 'message' => 'Đại biểu chưa cập nhật ảnh.']);
+        }
+
+        $imagePath = storage_path('app/public/meetings/' . $id . '/faces/' . $guest->image_filename);
+
+        // 2. Kiểm tra file vật lý có thực sự tồn tại và không phải là thư mục
+        if (!file_exists($imagePath) || is_dir($imagePath)) {
+            return response()->json(['status' => 'error', 'message' => 'Không tìm thấy file ảnh gốc trên máy chủ.']);
+        }
+
+        try {
+            // Gửi file ảnh sang Python
+            $response = Http::timeout(15)->attach(
+                'file', file_get_contents($imagePath), $guest->image_filename
+            )->post('http://127.0.0.1:8001/xac_thuc_anh');
+
+            if ($response->successful()) {
+                $data = $response->json(); // Lấy dữ liệu từ Python
+                
+                if (isset($data['status']) && $data['status'] === 'success') {
+                    $binaryVector = pack('f*', ...$data['vector']);
+                    $guest->face_vector = $binaryVector;
+                    
+                    // ĐÃ XÓA DÒNG $guest->is_face_valid = 1; ĐỂ TRÁNH LỖI DATABASE
+                    $guest->save();
+                    
+                    return response()->json(['status' => 'success']);
+                } else {
+                    return response()->json(['status' => 'error', 'message' => $data['message'] ?? 'Lỗi không xác định từ AI']);
+                }
+            }
+            return response()->json(['status' => 'error', 'message' => 'AI Server phản hồi mã lỗi: ' . $response->status()], 500);
+            
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Không kết nối được AI (Port 8001 đang tắt).'], 500);
+        }
+    }
 }

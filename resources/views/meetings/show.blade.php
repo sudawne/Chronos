@@ -95,6 +95,14 @@
                             <span class="text-sm font-medium">Nhắc bổ sung ảnh</span>
                         </button>
                     </form>
+                    <form action="{{ route('meetings.validate_faces', $meeting->id) }}" method="GET" class="inline m-0 flex-1 sm:flex-none"
+                        onsubmit="confirmAction(event, 'Quét kiểm tra toàn bộ khuôn mặt?', 'Hệ thống AI sẽ duyệt qua tất cả hình ảnh của đại biểu để phát hiện các ảnh lỗi (không có khuôn mặt, ảnh tập thể nhiều người...). Quá trình này có thể mất vài phút.')">
+                        @csrf
+                        <button type="submit" class="w-full flex justify-center items-center gap-2 px-3 py-2 bg-transparent text-slate-600 hover:bg-slate-50 hover:text-pink-600 rounded-xl transition-all duration-300 active:scale-95">
+                            <span class="material-symbols-outlined text-[18px] text-pink-500">fact_check</span>
+                            <span class="text-sm font-medium">Quét ảnh lỗi</span>
+                        </button>
+                    </form>
                 </div>
             </div>
             
@@ -172,7 +180,7 @@
                 {{-- CÔNG TẮC BẬT/TẮT YÊU CẦU CHỚP MẮT --}}
                 <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
                     <div class="flex flex-col">
-                        <span class="text-[13px] font-bold text-slate-700">Chống giả mạo (Anti-spoof)</span>
+                        <span class="text-[13px] font-bold text-slate-700">Chống giả mạo</span>
                         <span class="text-[11px] text-slate-500">Yêu cầu chớp mắt</span>
                     </div>
                     
@@ -399,7 +407,7 @@
                                         <span class="material-symbols-outlined text-[32px] opacity-50">group_off</span>
                                     </div>
                                     <p class="text-base font-medium text-slate-600 mb-1">Chưa có khách mời</p>
-                                    <p class="text-sm">Không có khách mời nào được thêm vào cuộc họp này.</p>
+                                    <p class="text-sm">Không có khách mời nào được thêm vào sự kiện này.</p>
                                 </div>
                             </td>
                         </tr>
@@ -701,7 +709,7 @@
                             
                             ${isActive 
                                 ? `<span class="text-xs font-bold text-rose-500 bg-rose-100 px-3 py-1.5 rounded-lg shadow-sm border border-rose-200">Đang mở ở máy khác</span>` 
-                                : `<button onclick="window.open('/meetings/${meetingId}/online?gate=${encodeURIComponent(gate)}', '_blank')" class="px-5 py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 text-sm font-bold rounded-xl transition-all active:scale-95 shadow-sm border border-indigo-100 hover:border-indigo-600">Mở trên máy này</button>`
+                                : `<button onclick="window.open('/meetings/${window.currentMeetingId}/online?gate=${encodeURIComponent(gate)}', '_blank')" class="px-5 py-2 bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 text-sm font-bold rounded-xl transition-all active:scale-95 shadow-sm border border-indigo-100 hover:border-indigo-600">Mở trên máy này</button>`
                             }
                         </div>
                     `;
@@ -715,7 +723,7 @@
     function openCustomGate() {
         const name = document.getElementById('custom-gate-name').value.trim();
         if(name) {
-            window.open(`/meetings/${meetingId}/online?gate=${encodeURIComponent(name)}`, '_blank');
+            window.open(`/meetings/${window.currentMeetingId}/online?gate=${encodeURIComponent(name)}`, '_blank');
         } else {
             // Thay thế alert("Vui lòng nhập tên cổng!"); bằng:
             Swal.fire({

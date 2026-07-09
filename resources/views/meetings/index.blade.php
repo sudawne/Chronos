@@ -9,7 +9,7 @@
         <div class="absolute -right-10 -top-10 w-40 h-40 bg-gradient-to-br from-[#5949be]/5 to-transparent rounded-full pointer-events-none"></div>
 
         <div>
-            <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight mb-1">Danh sách cuộc họp</h1>
+            <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight mb-1">Danh sách sự kiện</h1>
             <p class="text-gray-500 font-medium text-sm flex items-center gap-2">
                 <span class="material-symbols-outlined text-[18px]">folder_managed</span>
                 Quản lý kho lưu trữ và thông tin khách mời

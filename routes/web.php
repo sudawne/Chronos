@@ -58,10 +58,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/meetings/{meeting}', [MeetingController::class, 'show'])->name('meetings.show');
     Route::get('/meetings/{meeting}/edit', [MeetingController::class, 'edit'])
-        ->middleware('permission:meeting.edit')
         ->name('meetings.edit');
     Route::put('/meetings/{meeting}', [MeetingController::class, 'update'])
-        ->middleware('permission:meeting.edit')
+        // ->middleware('permission:meeting.edit')
         ->name('meetings.update');
     Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy'])
         ->middleware('permission:meeting.delete')
@@ -85,8 +84,14 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/guests/{guest}', [GuestController::class, 'destroy'])->name('guests.destroy');
     Route::get('/api/meetings/{meeting}/realtime-stats', [\App\Http\Controllers\MeetingController::class, 'realtimeStats']);
     Route::get('/meetings/{meeting}/export-guests', [\App\Http\Controllers\MeetingController::class, 'exportGuests'])->name('meetings.export_guests');
+    // THÙNG RÁC - QUẢN LÝ SỰ KIỆN ĐÃ XÓA
+    Route::get('/meetings-trashed', [\App\Http\Controllers\MeetingController::class, 'trashed'])->name('meetings.trashed');
+    Route::patch('/meetings/{id}/restore', [\App\Http\Controllers\MeetingController::class, 'restore'])->name('meetings.restore');
+    Route::delete('/meetings/{id}/force-delete', [\App\Http\Controllers\MeetingController::class, 'forceDelete'])->name('meetings.force_delete');
+
+    Route::get('/meetings/{id}/validate-faces', [App\Http\Controllers\MeetingController::class, 'validateFacesView'])->name('meetings.validate_faces');
+    Route::post('/meetings/{id}/process-validation', [App\Http\Controllers\MeetingController::class, 'processValidation']);
     
-    // Quản lý đại biểu
     Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace'])->name('guests.update_face');
 
     // Các API nội bộ
@@ -119,7 +124,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
         Route::get('/admin/users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
         Route::put('/admin/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
-
+        Route::put('/admin/users/{user}/change-password', [AdminUserController::class, 'changePassword'])->name('admin.users.change-password');
         // 2. Quản lý Ma trận chức vụ (Nhóm - Roles)
         Route::get('/admin/permissions/matrix', [AdminUserController::class, 'matrix'])->name('admin.matrix.index');
         Route::post('/admin/permissions/matrix/update', [AdminUserController::class, 'matrixUpdate'])->name('admin.permissions.matrix.update');

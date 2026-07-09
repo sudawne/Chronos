@@ -55,12 +55,31 @@ class AdminUserController extends Controller
     // ==========================================
     // PHẦN 1: QUẢN LÝ TỪNG USER
     // ==========================================
-    public function index()
+    public function index(Request $request)
     {
-        // Yêu cầu quyền xem user
-        $this->checkPermission('user.view'); 
-        $users = User::with('roles', 'permissions')->paginate(15);
-        return view('admin.users.index', compact('users'));
+        $query = User::query();
+
+        // Lọc theo từ khóa (Tên hoặc Email)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Lọc theo Role
+        if ($request->filled('role')) {
+            $query->role($request->role); // Yêu cầu sử dụng Spatie Permission
+        }
+
+        // Truyền $roles ra view để select box hoạt động
+        $roles = Role::all();
+        
+        // Giữ lại query string khi phân trang
+        $users = $query->paginate(15)->withQueryString(); 
+
+        return view('admin.users.index', compact('users', 'roles'));
     }
 
     public function edit(User $user)
@@ -132,5 +151,17 @@ class AdminUserController extends Controller
             $role->syncPermissions($rolesData[$role->name] ?? []);
         }
         return redirect()->back()->with('success', 'Đã cập nhật Ma trận Phân quyền thành công!');
+    }
+    public function changePassword(Request $request, User $user)
+    {
+        $request->validate([
+            'password' => 'required|min:6|confirmed', 
+        ]);
+
+        $user->update([
+            'password' => bcrypt($request->password)
+        ]);
+
+        return back()->with('success', "Đã cập nhật mật khẩu thành công cho tài khoản {$user->name}");
     }
 }
