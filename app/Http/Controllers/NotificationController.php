@@ -38,11 +38,23 @@ class NotificationController extends Controller
     }
 
     // API đánh dấu đã đọc
-    public function markAllAsRead()
+    public function markAsRead($id)
     {
         if (Auth::check()) {
-            Auth::user()->unreadNotifications->markAsRead();
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+            
+            // Tìm thông báo theo ID của user hiện tại
+            $notification = $user->notifications()->find($id);
+            
+            if ($notification) {
+                $notification->markAsRead(); // Đánh dấu đã đọc
+                
+                // Chuyển hướng đến link đích (nếu không có thì về trang chủ)
+                return redirect($notification->data['link'] ?? '/');
+            }
         }
-        return response()->json(['status' => 'success']);
+        
+        return redirect()->back();
     }
 }

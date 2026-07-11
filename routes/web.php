@@ -35,102 +35,112 @@ Route::get('/auth/facebook/callback', [GoogleController::class, 'handleFacebookC
 // ==========================================
 // 2. KHU VỰC ĐÃ ĐĂNG NHẬP (AUTH)
 // ==========================================
+// ==========================================
+// 2. KHU VỰC ĐÃ ĐĂNG NHẬP (AUTH TIÊU CHUẨN)
+// ==========================================
 Route::middleware(['auth'])->group(function () {
     
-    // Dashboard
+    // Tiện ích chung ai cũng vào được
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    // Quản lý thông tin cá nhân
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-
-    // Quản lý Cuộc họp (CRUD)
-    Route::get('/meetings', [MeetingController::class, 'index'])->name('meetings.index');
-    // Route::get('/meetings/create', function () { return view('meetings.create'); })->name('meetings.create');
-    // Route::post('/meetings', [MeetingController::class, 'store'])->name('meetings.store');
-    Route::get('/meetings/create', function () { return view('meetings.create'); })
-        ->middleware('permission:meeting.create') // Gắn ổ khóa
-        ->name('meetings.create');
-
-    Route::post('/meetings', [MeetingController::class, 'store'])
-        ->middleware('permission:meeting.create') // Gắn ổ khóa
-        ->name('meetings.store');
-
-    Route::get('/meetings/{meeting}', [MeetingController::class, 'show'])->name('meetings.show');
-    Route::get('/meetings/{meeting}/edit', [MeetingController::class, 'edit'])
-        ->name('meetings.edit');
-    Route::put('/meetings/{meeting}', [MeetingController::class, 'update'])
-        // ->middleware('permission:meeting.edit')
-        ->name('meetings.update');
-    Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy'])
-        ->middleware('permission:meeting.delete')
-        ->name('meetings.destroy');
-
-    // Các tính năng tiện ích của Cuộc họp
-    Route::get('/meetings/{meeting}/welcome', [MeetingController::class, 'welcomeScreen'])->name('meetings.welcome');
-    Route::get('/meetings/{meeting}/start-camera', [MeetingController::class, 'startCamera'])->name('meetings.start_camera'); //Không sài nữa
-    Route::get('/meetings/{meeting}/online', [MeetingController::class, 'onlineCheckin'])->name('meetings.online');
-    Route::post('/meetings/{meeting}/send-tickets', [MeetingController::class, 'sendTickets'])->name('meetings.send_tickets');
-    Route::get('/meetings/{meeting}/scan-qr', [MeetingController::class, 'scanQr'])->name('meetings.scan_qr');
-    Route::post('/meetings/{meeting}/add-guest', [MeetingController::class, 'addGuest'])->name('meetings.add_guest');
-    Route::post('/meetings/{meeting}/welcome-config', [MeetingController::class, 'updateWelcomeConfig'])->name('meetings.update_welcome_config');
-    Route::get('/meetings/{meeting}/designer', [App\Http\Controllers\MeetingController::class, 'designer'])
-        ->middleware('permission:meeting.design')
-        ->name('meetings.designer');
-    Route::post('/api/meetings/{meeting}/save-design', [App\Http\Controllers\MeetingController::class, 'saveDesign'])->name('api.save_design');
-    Route::get('/meetings/{meeting}/game', [MeetingController::class, 'game'])->name('meetings.game');
-    Route::post('/meetings/{meeting}/toggle-liveness', [\App\Http\Controllers\MeetingController::class, 'toggleLiveness'])->name('meetings.toggle_liveness');
-    Route::put('/guests/{guest}', [GuestController::class, 'update'])->name('guests.update');
-    Route::delete('/guests/{guest}', [GuestController::class, 'destroy'])->name('guests.destroy');
-    Route::get('/api/meetings/{meeting}/realtime-stats', [\App\Http\Controllers\MeetingController::class, 'realtimeStats']);
-    Route::get('/meetings/{meeting}/export-guests', [\App\Http\Controllers\MeetingController::class, 'exportGuests'])->name('meetings.export_guests');
-    // THÙNG RÁC - QUẢN LÝ SỰ KIỆN ĐÃ XÓA
-    Route::get('/meetings-trashed', [\App\Http\Controllers\MeetingController::class, 'trashed'])->name('meetings.trashed');
-    Route::patch('/meetings/{id}/restore', [\App\Http\Controllers\MeetingController::class, 'restore'])->name('meetings.restore');
-    Route::delete('/meetings/{id}/force-delete', [\App\Http\Controllers\MeetingController::class, 'forceDelete'])->name('meetings.force_delete');
-
-    Route::get('/meetings/{id}/validate-faces', [App\Http\Controllers\MeetingController::class, 'validateFacesView'])->name('meetings.validate_faces');
-    Route::post('/meetings/{id}/process-validation', [App\Http\Controllers\MeetingController::class, 'processValidation']);
-    
-    Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace'])->name('guests.update_face');
-
-    // Các API nội bộ
-    Route::get('/start-ai-api', [MeetingController::class, 'startApiServer'])->name('api.start_server');
-    Route::get('/api/meetings/{meeting}/latest-checkin', [MeetingController::class, 'latestCheckin'])
-        ->middleware('permission:attendance.manage')
-        ->name('api.latest_checkin');
-    Route::post('/api/meetings/process-qr', [MeetingController::class, 'processQrScan'])->name('api.process_qr');
     Route::get('/api/global-search', [MeetingController::class, 'globalSearch']);
-    // API lấy danh sách cổng đang hoạt động và API gửi nhịp tim
+    
+    // Lấy danh sách cuộc họp
+    Route::get('/meetings', [MeetingController::class, 'index'])->name('meetings.index');
+
+    // ------------------------------------------
+    // [QUYỀN TẠO CUỘC HỌP] - PHẢI ĐẶT TRÊN MEETING.SHOW
+    // ------------------------------------------
+    Route::middleware(['permission:meeting.create'])->group(function () {
+        Route::get('/meetings/create', function () { return view('meetings.create'); })->name('meetings.create');
+        Route::post('/meetings', [MeetingController::class, 'store'])->name('meetings.store');
+    });
+
+    // ------------------------------------------
+    // CHI TIẾT CUỘC HỌP (ROUTE ĐỘNG {meeting})
+    // ------------------------------------------
+    // Dòng này phải đặt SAU /meetings/create để tránh bị nuốt route
+    Route::get('/meetings/{meeting}', [MeetingController::class, 'show'])->name('meetings.show');
+
+    // ------------------------------------------
+    // [QUYỀN SỬA CUỘC HỌP]
+    // ------------------------------------------
+    Route::middleware(['permission:meeting.edit'])->group(function () {
+        Route::get('/meetings/{meeting}/edit', [MeetingController::class, 'edit'])->name('meetings.edit');
+        Route::put('/meetings/{meeting}', [MeetingController::class, 'update'])->name('meetings.update');
+        Route::post('/meetings/{meeting}/welcome-config', [MeetingController::class, 'updateWelcomeConfig'])->name('meetings.update_welcome_config');
+        Route::post('/meetings/{meeting}/toggle-liveness', [MeetingController::class, 'toggleLiveness'])->name('meetings.toggle_liveness');
+        Route::put('/guests/{guest}', [GuestController::class, 'update'])->name('guests.update');
+        Route::post('/guests/{guest}/update-face', [GuestController::class, 'updateFace'])->name('guests.update_face');
+    });
+
+    // ------------------------------------------
+    // [QUYỀN XÓA CUỘC HỌP & THÙNG RÁC]
+    // ------------------------------------------
+    Route::middleware(['permission:meeting.delete'])->group(function () {
+        Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy'])->name('meetings.destroy');
+        Route::delete('/guests/{guest}', [GuestController::class, 'destroy'])->name('guests.destroy');
+        Route::get('/meetings-trashed', [MeetingController::class, 'trashed'])->name('meetings.trashed');
+        Route::patch('/meetings/{id}/restore', [MeetingController::class, 'restore'])->name('meetings.restore');
+        Route::delete('/meetings/{id}/force-delete', [MeetingController::class, 'forceDelete'])->name('meetings.force_delete');
+    });
+
+    // ------------------------------------------
+    // [QUYỀN THIẾT KẾ MÀN HÌNH CHÀO MỪNG]
+    // ------------------------------------------
+    Route::middleware(['permission:meeting.design'])->group(function () {
+        Route::get('/meetings/{meeting}/designer', [MeetingController::class, 'designer'])->name('meetings.designer');
+        Route::post('/api/meetings/{meeting}/save-design', [MeetingController::class, 'saveDesign'])->name('api.save_design');
+        Route::get('/api/welcome-templates', [MeetingController::class, 'getTemplates'])->name('api.get_templates');
+        Route::post('/api/welcome-templates', [MeetingController::class, 'saveTemplate'])->name('api.save_template');
+        Route::delete('/api/welcome-templates/{id}', [MeetingController::class, 'deleteTemplate'])->name('api.delete_template');
+    });
+
+    // ------------------------------------------
+    // [QUYỀN VẬN HÀNH AI & ĐIỂM DANH]
+    // ------------------------------------------
+    Route::middleware(['permission:attendance.manage'])->group(function () {
+        Route::post('/meetings/{meeting}/send-tickets', [MeetingController::class, 'sendTickets'])->name('meetings.send_tickets');
+        Route::post('/meetings/{meeting}/add-guest', [MeetingController::class, 'addGuest'])->name('meetings.add_guest');
+        Route::post('/meetings/{meeting}/send-photo-requests', [MeetingController::class, 'sendPhotoRequests'])->name('meetings.send-photo-requests');
+        
+        // Quản lý API Server AI
+        Route::get('/start-ai-api', [MeetingController::class, 'startApiServer'])->name('api.start_server');
+        Route::get('/meetings/{id}/validate-faces', [MeetingController::class, 'validateFacesView'])->name('meetings.validate_faces');
+        Route::post('/meetings/{id}/process-validation', [MeetingController::class, 'processValidation']);
+    });
+
+    // Các Route phục vụ màn hình chạy trực tiếp (Không cần khóa quyền nghiêm ngặt để nhân viên trực có thể mở)
+    Route::get('/meetings/{meeting}/welcome', [MeetingController::class, 'welcomeScreen'])->name('meetings.welcome');
+    Route::get('/meetings/{meeting}/online', [MeetingController::class, 'onlineCheckin'])->name('meetings.online');
+    Route::get('/meetings/{meeting}/game', [MeetingController::class, 'game'])->name('meetings.game');
+    Route::get('/meetings/{meeting}/scan-qr', [MeetingController::class, 'scanQr'])->name('meetings.scan_qr');
+    Route::post('/api/meetings/process-qr', [MeetingController::class, 'processQrScan'])->name('api.process_qr');
+    Route::get('/api/meetings/{meeting}/latest-checkin', [MeetingController::class, 'latestCheckin'])->name('api.latest_checkin');
+    Route::get('/api/meetings/{meeting}/realtime-stats', [MeetingController::class, 'realtimeStats']);
     Route::get('/api/meetings/{meeting}/active-gates', [MeetingController::class, 'getActiveGates']);
     Route::post('/api/meetings/{meeting}/gate-heartbeat', [MeetingController::class, 'gateHeartbeat']);
-    //Template Welcome
-    Route::get('/api/welcome-templates', [MeetingController::class, 'getTemplates'])->name('api.get_templates');
-    Route::post('/api/welcome-templates', [MeetingController::class, 'saveTemplate'])->name('api.save_template');
-    Route::delete('/api/welcome-templates/{id}', [MeetingController::class, 'deleteTemplate'])->name('api.delete_template');
+    Route::get('/meetings/{meeting}/export-guests', [MeetingController::class, 'exportGuests'])->name('meetings.export_guests');
 
-    // Quản lý ảnh đại biểu
-    Route::get('/meetings/{meeting}/guests/{guest}/photo', [App\Http\Controllers\MeetingController::class, 'guestPhotoForm'])
-        ->name('guest.photo.form')->middleware('signed');
+    // Route khách tự up ảnh (Signed url)
+    Route::get('/meetings/{meeting}/guests/{guest}/photo', [MeetingController::class, 'guestPhotoForm'])->name('guest.photo.form')->middleware('signed');
+    Route::post('/meetings/{meeting}/guests/{guest}/photo', [MeetingController::class, 'guestPhotoUpload'])->name('guest.photo.upload')->middleware('signed');
 
-    Route::post('/meetings/{meeting}/guests/{guest}/photo', [App\Http\Controllers\MeetingController::class, 'guestPhotoUpload'])
-        ->name('guest.photo.upload')->middleware('signed');
-        
-    Route::post('/meetings/{meeting}/send-photo-requests', [App\Http\Controllers\MeetingController::class, 'sendPhotoRequests'])
-        ->name('meetings.send-photo-requests');
-    // Admin: Quản lý User (CRUD)
-    Route::middleware(['auth'])->group(function () { 
-        // 1. Quản lý phân quyền Cá nhân (User)
+    // ==========================================
+    // 3. KHU VỰC QUẢN TRỊ VIÊN HỆ THỐNG (ADMIN)
+    // ==========================================
+    Route::middleware(['permission:admin.users'])->group(function () { 
         Route::get('/admin/users', [AdminUserController::class, 'index'])->name('admin.users.index');
         Route::get('/admin/users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
         Route::put('/admin/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
         Route::put('/admin/users/{user}/change-password', [AdminUserController::class, 'changePassword'])->name('admin.users.change-password');
-        // 2. Quản lý Ma trận chức vụ (Nhóm - Roles)
+        
         Route::get('/admin/permissions/matrix', [AdminUserController::class, 'matrix'])->name('admin.matrix.index');
         Route::post('/admin/permissions/matrix/update', [AdminUserController::class, 'matrixUpdate'])->name('admin.permissions.matrix.update');
-
-        // 3. Quản lý thông báo hệ thống
-        Route::get('/api/notifications/unread', [NotificationController::class, 'getUnread'])->name('notifications.unread');
-        Route::post('/api/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
     });
+
+    Route::get('/api/notifications/unread', [NotificationController::class, 'getUnread'])->name('notifications.unread');
+    Route::post('/api/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+    Route::get('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 });

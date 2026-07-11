@@ -122,7 +122,7 @@
                     <a href="{{ route('meetings.edit', $meeting->id) }}" class="p-2.5 bg-gray-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors" title="Chỉnh sửa">
                         <span class="material-symbols-outlined text-[20px]">edit</span>
                     </a>
-
+                    @can('meeting.delete')
                     <form action="{{ route('meetings.destroy', $meeting->id) }}" method="POST" class="inline m-0" 
                         onsubmit="confirmAction(event, 'Xóa Sự kiện này?', 'Mọi dữ liệu khuôn mặt và khách mời liên quan sẽ bị xóa vĩnh viễn.')">                        @csrf
                         @method('DELETE')
@@ -130,6 +130,7 @@
                             <span class="material-symbols-outlined text-[20px]">delete</span>
                         </button>
                     </form>
+                    @endcan
                 </div>
             </div>
         @empty

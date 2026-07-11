@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\Meeting;
 use App\Models\Guest;
 use Illuminate\Support\Facades\Storage;
-// Thêm thư viện đọc Excel vào đây
 use PhpOffice\PhpSpreadsheet\IOFactory; 
 use Illuminate\Support\Facades\Http;
 use App\Mail\GuestTicketMail;
@@ -195,6 +194,16 @@ class MeetingController extends Controller
             'recognition_threshold' => $request->recognition_threshold ?? 0.55,
         ]);
 
+        $user = Auth::user();
+        Notification::send($user, new SystemAlert([
+            'title'      => 'Đã cập nhật sự kiện',
+            'message'    => 'Thông tin cuộc họp "' . $meeting->title . '" vừa được thay đổi.',
+            'icon'       => 'edit_calendar',
+            'bg_color'   => 'bg-blue-500',
+            'text_color' => 'text-blue-600 dark:text-blue-400',
+            'link'       => route('meetings.show', $meeting->id)
+        ]));
+
         return redirect()->route('meetings.index')->with('success', 'Cập nhật thông tin cuộc họp thành công!');
     }
 
@@ -342,6 +351,16 @@ class MeetingController extends Controller
             }
         }
 
+        $user = Auth::user();
+        Notification::send($user, new SystemAlert([
+            'title'      => 'Phân phối vé hoàn tất',
+            'message'    => "Hệ thống đã gửi thành công $count vé mời QR cho sự kiện " . $meeting->title,
+            'icon'       => 'mark_email_read',
+            'bg_color'   => 'bg-emerald-500',
+            'text_color' => 'text-emerald-600 dark:text-emerald-400',
+            'link'       => route('meetings.show', $meeting->id)
+        ]));
+
         return redirect()->back()->with('success', "Đã gửi thành công $count vé mời QR Code qua Email!");
     }
 
@@ -468,6 +487,16 @@ class MeetingController extends Controller
                     $binaryVector = pack('f*', ...$response['vector']);
                     $guest->update(['face_vector' => $binaryVector]);
                     
+                    $user = Auth::user();
+                    Notification::send($user, new SystemAlert([
+                        'title'      => 'Thêm đại biểu thành công',
+                        'message'    => 'Đã thêm đại biểu ' . $guest->full_name . ' vào sự kiện ' . $meeting->title,
+                        'icon'       => 'person_add',
+                        'bg_color'   => 'bg-indigo-500',
+                        'text_color' => 'text-indigo-600 dark:text-indigo-400',
+                        'link'       => route('meetings.show', $meeting->id)
+                    ]));
+
                     return redirect()->back()->with('success', 'Đã thêm đại biểu ' . $guest->full_name . ' và nạp khuôn mặt thành công!');
                 } else {
                     return redirect()->back()->with('warning', 'Đã lưu đại biểu & ảnh, NHƯNG lỗi AI: ' . ($response['message'] ?? 'Không trích xuất được khuôn mặt.'));
@@ -512,8 +541,20 @@ class MeetingController extends Controller
             if ($response->successful() && $response['status'] === 'success') {
                 $binaryVector = pack('f*', ...$response['vector']);
                 $guest->update(['face_vector' => $binaryVector]);
+
+                $owner = \App\Models\User::find($meeting->user_id);
+                if ($owner) {
+                    Notification::send($owner, new SystemAlert([
+                        'title'      => 'Đại biểu nạp ảnh thành công',
+                        'message'    => $guest->full_name . ' vừa tự cập nhật dữ liệu khuôn mặt qua link bảo mật.',
+                        'icon'       => 'face_retouching_natural',
+                        'bg_color'   => 'bg-emerald-500',
+                        'text_color' => 'text-emerald-600 dark:text-emerald-400',
+                        'link'       => route('meetings.show', $meeting->id)
+                    ]));
+                }
                 
-                return back()->with('success', 'Tuyệt vời! Khuôn mặt của bạn đã được AI ghi nhận thành công.');
+                return back()->with('success', 'Khuôn mặt của bạn đã được AI ghi nhận thành công.');
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Lỗi AI khi khách tự up ảnh: " . $e->getMessage());
@@ -527,18 +568,31 @@ class MeetingController extends Controller
         $query = $request->query('query');
         
         if (empty($query)) {
-            return response()->json([]);
+            return response()->json(['meetings' => [], 'guests' => []]);
         }
 
-        // Tìm kiếm các cuộc họp có tiêu đề hoặc địa điểm khớp với từ khóa nhập vào
+        // 1. Tìm Sự kiện (Giới hạn 5 kết quả)
         $meetings = \App\Models\Meeting::where('title', 'LIKE', '%' . $query . '%')
             ->orWhere('location', 'LIKE', '%' . $query . '%')
             ->select('id', 'title', 'location')
-            ->take(8) // Giới hạn tối đa 8 kết quả trả về để tối ưu tốc độ render
+            ->take(5)
             ->get();
 
-        return response()->json($meetings);
+        // 2. Tìm Người dùng / Đại biểu (Giới hạn 5 kết quả kèm theo tên cuộc họp của họ)
+        $guests = \App\Models\Guest::where('full_name', 'LIKE', '%' . $query . '%')
+            ->orWhere('email', 'LIKE', '%' . $query . '%')
+            ->join('meetings', 'guests.meeting_id', '=', 'meetings.id')
+            ->select('guests.id', 'guests.full_name', 'guests.email', 'guests.meeting_id', 'meetings.title as meeting_title')
+            ->take(5)
+            ->get();
+
+        // Trả về JSON chứa cả 2 mảng dữ liệu
+        return response()->json([
+            'meetings' => $meetings,
+            'guests' => $guests
+        ]);
     }
+    
     public function updateWelcomeConfig(Request $request, Meeting $meeting)
     {
         // Lấy cấu hình cũ nếu có
@@ -1032,53 +1086,54 @@ class MeetingController extends Controller
     // ==========================================
     
     // 1. Hiển thị danh sách đã xóa mềm
-    public function trashed()
-    {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
+    // 1. Tại hàm quản lý danh sách thùng rác (trashed)
+public function trashed()
+{
+    /** @var \App\Models\User $user */ // 💡 Dòng này giúp IDE hiểu $user có hàm can()
+    $user = Auth::user();
 
-        // Chỉ Admin mới được vào xem Thùng rác
-        if (!$user->hasRole('Admin')) {
-            abort(403, 'Bạn không có quyền truy cập Thùng rác!');
-        }
+    if (!$user || !$user->can('meeting.delete')) {
+        abort(403, 'Bạn không có quyền thực hiện thao tác này!');
+    }
+    $meetings = Meeting::onlyTrashed()->with('user')->orderBy('deleted_at', 'desc')->paginate(10);
+    return view('meetings.trashed', compact('meetings'));
+}
 
-        // Lấy danh sách sự kiện đã xóa (onlyTrashed)
-        $meetings = Meeting::onlyTrashed()->with('user')->orderBy('deleted_at', 'desc')->paginate(10);
-        
-        return view('meetings.trashed', compact('meetings'));
+// 2. Tại hàm Khôi phục sự kiện (restore)
+public function restore($id)
+{
+
+    /** @var \App\Models\User $user */ // 💡 Dòng này giúp IDE hiểu $user có hàm can()
+    $user = Auth::user();
+
+    if (!$user || !$user->can('meeting.delete')) {
+        abort(403, 'Bạn không có quyền thực hiện thao tác này!');
     }
 
-    // 2. Khôi phục sự kiện
-    public function restore($id)
-    {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        if (!$user->hasRole('Admin')) abort(403, 'Bạn không có quyền thực hiện thao tác này!');
+    $meeting = Meeting::onlyTrashed()->findOrFail($id);
+    $meeting->restore();
 
-        // Tìm sự kiện trong thùng rác và khôi phục
-        $meeting = Meeting::onlyTrashed()->findOrFail($id);
-        $meeting->restore();
+    return redirect()->route('meetings.trashed')->with('success', 'Đã khôi phục sự kiện: ' . $meeting->title);
+}
 
-        return redirect()->route('meetings.trashed')->with('success', 'Đã khôi phục sự kiện: ' . $meeting->title);
+// 3. Tại hàm Xóa vĩnh viễn (forceDelete)
+public function forceDelete($id)
+{
+    /** @var \App\Models\User $user */ // 💡 Dòng này giúp IDE hiểu $user có hàm can()
+    $user = Auth::user();
+    // Quyền tối cao: Chỉ những ai có quyền xóa vĩnh viễn (mặc định là Super Admin) mới được phép
+    if (!$user || !$user->can('meeting.force_delete')) {
+        abort(403, 'Bạn không có quyền thực hiện thao tác này!');
     }
 
-    // 3. Xóa vĩnh viễn (Hard Delete)
-    public function forceDelete($id)
-    {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        if (!$user->hasRole('Admin')) abort(403, 'Bạn không có quyền thực hiện thao tác này!');
+    $meeting = Meeting::onlyTrashed()->findOrFail($id);
+    
+    // Tiến hành xóa dữ liệu và ổ đĩa...
+    \Illuminate\Support\Facades\Storage::disk('public')->deleteDirectory('meetings/' . $id);
+    $meeting->forceDelete();
 
-        $meeting = Meeting::onlyTrashed()->findOrFail($id);
-        
-        // (Tùy chọn) Xóa thư mục ảnh khuôn mặt của cuộc họp này trong ổ cứng trước khi xóa database
-        \Illuminate\Support\Facades\Storage::disk('public')->deleteDirectory("meetings/{$meeting->id}");
-
-        // Xóa cứng khỏi Database
-        $meeting->forceDelete();
-
-        return redirect()->route('meetings.trashed')->with('success', 'Đã xóa vĩnh viễn sự kiện ra khỏi hệ thống!');
-    }
+    return redirect()->route('meetings.trashed')->with('success', 'Đã xóa vĩnh viễn sự kiện ra khỏi hệ thống.');
+}
 
     // ==========================================
     // XÁC THỰC KHUÔN MẶT (FACE VALIDATION)

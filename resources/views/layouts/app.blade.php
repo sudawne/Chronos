@@ -111,6 +111,7 @@
             </a>
             @endcan
 
+            @can('meeting.view')
             <a href="{{ route('meetings.index') }}" 
             class="{{ request()->routeIs('meetings.index', 'meetings.show', 'meetings.edit') 
                 ? 'relative bg-[#f3f6fd] dark:bg-[#0B1120] text-[#5949be] dark:text-indigo-400 rounded-l-[1.5rem] ml-4 py-4 flex items-center pl-7 before:absolute before:top-[-20px] before:right-0 before:w-5 before:h-5 before:rounded-br-[20px] before:shadow-[5px_5px_0_1px_#f3f6fd] dark:before:shadow-[5px_5px_0_1px_#0B1120] after:absolute after:bottom-[-20px] after:right-0 after:w-5 after:h-5 after:rounded-tr-[20px] after:shadow-[5px_-5px_0_1px_#f3f6fd] dark:after:shadow-[5px_-5px_0_1px_#0B1120] z-10' 
@@ -118,6 +119,7 @@
                 <span class="material-symbols-outlined flex-shrink-0" style="{{ request()->routeIs('meetings.index', 'meetings.show', 'meetings.edit') ? 'font-variation-settings: \'FILL\' 1;' : '' }}">view_list</span>
                 <span class="font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 max-w-[150px] ml-4 md:ml-0 md:opacity-0 md:max-w-0 group-[.is-expanded]/sidebar:md:ml-4 group-[.is-expanded]/sidebar:md:opacity-100 group-[.is-expanded]/sidebar:md:max-w-[150px]">Danh sách</span>
             </a>
+            @endcan
 
             @can('user.view')
             <div class="mt-6 mb-2 ml-8 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300/60 dark:text-indigo-500/50">Quản trị</div>
@@ -424,27 +426,60 @@
                     .then(res => res.json())
                     .then(data => {
                         resultsBox.innerHTML = '';
-                        if (data.length === 0) {
-                            resultsBox.innerHTML = '<div class="text-slate-400 dark:text-slate-500 text-sm text-center py-8">Không tìm thấy cuộc họp nào phù hợp.</div>';
+                        
+                        const hasMeetings = data.meetings && data.meetings.length > 0;
+                        const hasGuests = data.guests && data.guests.length > 0;
+
+                        if (!hasMeetings && !hasGuests) {
+                            resultsBox.innerHTML = '<div class="text-slate-400 dark:text-slate-500 text-sm text-center py-8">Không tìm thấy dữ liệu nào phù hợp.</div>';
                             return;
                         }
-                        data.forEach(item => {
-                            const html = `
-                                <a href="/meetings/${item.id}" class="flex items-center justify-between p-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-white/5 group transition-all">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-[#0B1120] border dark:border-white/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                                            <span class="material-symbols-outlined">forum</span>
+
+                        // VẼ KHU VỰC: SỰ KIỆN
+                        if (hasMeetings) {
+                            resultsBox.insertAdjacentHTML('beforeend', '<div class="px-4 py-2 mt-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-slate-50/50 dark:bg-white/[0.02]">Sự kiện</div>');
+                            data.meetings.forEach(item => {
+                                const html = `
+                                    <a href="/meetings/${item.id}" class="flex items-center justify-between p-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-500/10 group transition-all">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-[#0B1120] border border-transparent dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                                                <span class="material-symbols-outlined">forum</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-sm font-bold text-slate-800 dark:text-white block group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${item.title}</span>
+                                                <span class="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><span class="material-symbols-outlined text-[14px]">location_on</span>${item.location}</span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <span class="text-sm font-bold text-slate-800 dark:text-white block group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${item.title}</span>
-                                            <span class="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><span class="material-symbols-outlined text-[14px]">location_on</span>${item.location}</span>
+                                        <span class="material-symbols-outlined text-slate-300 dark:text-slate-600 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                                    </a>
+                                `;
+                                resultsBox.insertAdjacentHTML('beforeend', html);
+                            });
+                        }
+
+                        // VẼ KHU VỰC: NGƯỜI DÙNG / ĐẠI BIỂU
+                        if (hasGuests) {
+                            resultsBox.insertAdjacentHTML('beforeend', '<div class="px-4 py-2 mt-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-slate-50/50 dark:bg-white/[0.02]">Đại biểu</div>');
+                            data.guests.forEach(item => {
+                                const html = `
+                                    <a href="/meetings/${item.meeting_id}" class="flex items-center justify-between p-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 group transition-all">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full border border-transparent dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 overflow-hidden">
+                                                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(item.full_name)}&color=10b981&background=ecfdf5&bold=true" class="w-full h-full object-cover">
+                                            </div>
+                                            <div>
+                                                <span class="text-sm font-bold text-slate-800 dark:text-white block group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">${item.full_name}</span>
+                                                <span class="text-xs text-slate-400 flex items-center gap-1 mt-0.5 truncate max-w-[200px] xl:max-w-[250px]">
+                                                    <span class="material-symbols-outlined text-[14px]">mail</span>${item.email || 'Chưa cập nhật email'} - ${item.meeting_title}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <span class="material-symbols-outlined text-slate-300 dark:text-slate-600 group-hover:translate-x-1 transition-transform">chevron_right</span>
-                                </a>
-                            `;
-                            resultsBox.insertAdjacentHTML('beforeend', html);
-                        });
+                                        <span class="material-symbols-outlined text-slate-300 dark:text-slate-600 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                                    </a>
+                                `;
+                                resultsBox.insertAdjacentHTML('beforeend', html);
+                            });
+                        }
                     })
                     .catch(() => {
                         resultsBox.innerHTML = '<div class="text-rose-400 text-sm text-center py-8">Lỗi kết nối máy chủ tra cứu!</div>';
@@ -617,7 +652,7 @@
                         }
 
                         notifList.innerHTML = data.notifications.map(n => `
-                            <a href="${n.link}" class="block p-4 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors relative group bg-indigo-50/30 dark:bg-indigo-500/5">
+                            <a href="/notifications/${n.id}/read" class="block p-4 hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors relative group bg-indigo-50/30 dark:bg-indigo-500/5">
                                 <div class="absolute top-5 right-4 w-2 h-2 rounded-full bg-[#5949be] dark:bg-indigo-400 ring-4 ring-[#5949be]/10 dark:ring-indigo-400/10 opacity-80 group-hover:opacity-100 transition-opacity"></div>
                                 
                                 <div class="flex gap-3.5 pr-4">
