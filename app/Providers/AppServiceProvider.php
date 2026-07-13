@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Event; 
 use Illuminate\Auth\Events\Login;
 
@@ -25,5 +26,10 @@ class AppServiceProvider extends ServiceProvider
             app(\App\Http\Controllers\MeetingController::class)->startApiServer();
             
         });
+
+        URL::forceRootUrl(config('app.url'));
+        if (str_contains(config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
     }
 }
