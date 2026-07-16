@@ -83,7 +83,7 @@
         }
 
         if (navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: false })
+            navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720, facingMode: "user" }, audio: false })
                 .then(function (stream) { video.srcObject = stream; })
                 .catch(function (err) { alert("Không thể mở Camera. Vui lòng kiểm tra quyền!"); });
         }
@@ -118,7 +118,7 @@
             formData.append('image_base64', base64Image);
             formData.append('meeting_id', {{ $meeting->id }});
 
-            fetch('http://localhost:8001/nhan_dien', {
+            fetch('{{ config("app.ai_server_url") }}/nhan_dien', {
                 method: 'POST',
                 body: formData
             })

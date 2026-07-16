@@ -123,4 +123,10 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | AI Server Configuration
+    |--------------------------------------------------------------------------
+    */
+    'ai_server_url' => env('AI_SERVER_URL', 'http://localhost:8001'),
 ];

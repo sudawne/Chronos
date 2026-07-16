@@ -12,7 +12,7 @@ use Carbon\Carbon;
 class CheckInController extends Controller
 {
     /**
-     * Xử lý dữ liệu điểm danh gửi từ lõi AI (Python)
+     * Xử lý dữ liệu điểm danh gửi từ lõi AI 
      */
     public function submitCheckIn(Request $request)
     {

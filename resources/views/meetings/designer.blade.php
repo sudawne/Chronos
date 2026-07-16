@@ -17,7 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&family=Dancing+Script:wght@600;700&family=Montserrat:wght@400;700;900&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
         .light-workspace { background-image: radial-gradient(#cbd5e1 1px, transparent 0); background-size: 20px 20px; }
@@ -728,74 +728,92 @@
         }
 
         function applyTemplate(templateId) {
-            if(!confirm('Áp dụng Template sẽ ghi đè thiết kế hiện tại. Tiếp tục?')) return;
-            const tpl = globalTemplates.find(t => t.id === templateId);
-            if (!tpl) return;
+        // 1. Hiển thị thông báo tùy chỉnh bằng SweetAlert2
+        Swal.fire({
+            title: 'Áp dụng mẫu thiết kế?',
+            text: 'Hành động này sẽ ghi đè lên toàn bộ thiết kế hiện tại của bạn. Bạn có chắc chắn muốn tiếp tục?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5', // Màu chàm (Indigo 600) cho đồng bộ giao diện
+            cancelButtonColor: '#94a3b8',  // Màu xám (Slate 400) cho nút Hủy
+            confirmButtonText: 'Đồng ý áp dụng',
+            cancelButtonText: 'Hủy bỏ'
+        }).then((result) => {
+            // 2. Chỉ thực thi logic khi người dùng bấm nút "Đồng ý"
+            if (result.isConfirmed) {
+                const tpl = globalTemplates.find(t => t.id === templateId);
+                if (!tpl) return;
 
-            const data = typeof tpl.config === 'string' ? JSON.parse(tpl.config) : tpl.config;
-            document.getElementById('bgColor').value = data.bg_color || '#0f172a';
-            artboard.style.backgroundColor = data.bg_color || '#0f172a';
-            
-            if (data.bg_image) {
-                artboard.style.backgroundImage = `url('${data.bg_image}')`;
-                document.getElementById('bgImage').value = data.bg_image;
-            } else {
-                artboard.style.backgroundImage = 'none';
-                document.getElementById('bgImage').value = '';
-            }
+                const data = typeof tpl.config === 'string' ? JSON.parse(tpl.config) : tpl.config;
+                
+                // Xử lý nền
+                document.getElementById('bgColor').value = data.bg_color || '#0f172a';
+                artboard.style.backgroundColor = data.bg_color || '#0f172a';
+                
+                if (data.bg_image) {
+                    artboard.style.backgroundImage = `url('${data.bg_image}')`;
+                    document.getElementById('bgImage').value = data.bg_image;
+                } else {
+                    artboard.style.backgroundImage = 'none';
+                    document.getElementById('bgImage').value = '';
+                }
 
-            document.querySelectorAll('.draggable').forEach(el => el.remove());
+                // Xóa các thành phần cũ
+                document.querySelectorAll('.draggable').forEach(el => el.remove());
 
-            if (data.elements) {
-                data.elements.forEach(elData => {
-                    const el = document.createElement('div');
-                    el.id = elData.id;
-                    el.className = 'draggable';
-                    el.dataset.type = elData.type;
-                    el.style.left = elData.x + 'px';
-                    el.style.top = elData.y + 'px';
+                // Vẽ lại các thành phần mới từ Template
+                if (data.elements) {
+                    data.elements.forEach(elData => {
+                        const el = document.createElement('div');
+                        el.id = elData.id;
+                        el.className = 'draggable';
+                        el.dataset.type = elData.type;
+                        el.style.left = elData.x + 'px';
+                        el.style.top = elData.y + 'px';
 
-                    if (elData.type === 'text') {
-                        el.innerText = elData.content;
-                        el.style.fontFamily = elData.fontFamily;
-                        el.style.fontSize = elData.size + 'px';
-                        el.style.color = elData.color;
-                        el.style.fontWeight = elData.fontWeight || 'normal';
+                        if (elData.type === 'text') {
+                            el.innerText = elData.content;
+                            el.style.fontFamily = elData.fontFamily;
+                            el.style.fontSize = elData.size + 'px';
+                            el.style.color = elData.color;
+                            el.style.fontWeight = elData.fontWeight || 'normal';
 
-                        el.style.width = (elData.width && elData.width !== 'max-content') ? elData.width + 'px' : 'max-content';
-                        el.style.textAlign = elData.align || 'left';
-                        el.style.justifyContent = elData.align === 'center' ? 'center' : (elData.align === 'right' ? 'flex-end' : 'flex-start');
-                    } else if(elData.type === 'image') {
-                        const img = document.createElement('img');
-                        img.src = elData.src;
-                        img.style.width = elData.width + 'px';
-                        if (elData.height && elData.height !== 'auto') {
-                            img.style.height = elData.height + 'px';
-                        } else {
-                            img.style.height = 'auto';
+                            el.style.width = (elData.width && elData.width !== 'max-content') ? elData.width + 'px' : 'max-content';
+                            el.style.textAlign = elData.align || 'left';
+                            el.style.justifyContent = elData.align === 'center' ? 'center' : (elData.align === 'right' ? 'flex-end' : 'flex-start');
+                        } else if(elData.type === 'image') {
+                            const img = document.createElement('img');
+                            img.src = elData.src;
+                            img.style.width = elData.width + 'px';
+                            if (elData.height && elData.height !== 'auto') {
+                                img.style.height = elData.height + 'px';
+                            } else {
+                                img.style.height = 'auto';
+                            }
+                            el.appendChild(img);
+                        } else if(elData.type === 'avatar') {
+                            el.style.padding = '0';
+                            el.style.borderRadius = '50%';
+                            el.style.overflow = 'hidden';
+                            el.style.border = `${elData.borderWidth}px solid ${elData.borderColor}`;
+                            el.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+                            el.style.width = (elData.width || 200) + 'px';
+                            el.style.height = (elData.width || 200) + 'px';
+                            
+                            const img = document.createElement('img');
+                            img.src = 'https://ui-avatars.com/api/?name=Avatar&size=300';
+                            img.style.width = '100%';
+                            img.style.height = '100%';
+                            img.style.objectFit = 'cover';
+                            el.appendChild(img);
                         }
-                        el.appendChild(img);
-                    } else if(elData.type === 'avatar') {
-                        el.style.padding = '0'; // Đảm bảo Avatar vừa khít
-                        el.style.borderRadius = '50%';
-                        el.style.overflow = 'hidden';
-                        el.style.border = `${elData.borderWidth}px solid ${elData.borderColor}`;
-                        el.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
-                        el.style.width = (elData.width || 200) + 'px';
-                        el.style.height = (elData.width || 200) + 'px';
-                        
-                        const img = document.createElement('img');
-                        img.src = 'https://ui-avatars.com/api/?name=Avatar&size=300';
-                        img.style.width = '100%';
-                        img.style.height = '100%';
-                        img.style.objectFit = 'cover';
-                        el.appendChild(img);
-                    }
-                    attachEvents(el);
-                    artboard.appendChild(el);
-                });
+                        attachEvents(el);
+                        artboard.appendChild(el);
+                    });
+                }
             }
-        }
+        });
+    }
 
         function promptSaveTemplate() {
             const name = prompt("Nhập tên cho Mẫu thiết kế này (VD: Mẫu Đại Hội Y Tế):");
@@ -804,7 +822,7 @@
             fetch('{{ route('api.save_template') }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                body: JSON.stringify({ name: name.trim(), config: getCanvasData() })
+                body: JSON.stringify({ name: name.trim(), config: getCleanCanvasData() })
             })
             .then(res => res.json())
             .then(data => {
@@ -823,11 +841,24 @@
             fetch('{{ route('api.save_design', $meeting->id) }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                body: JSON.stringify(getCanvasData())
+                body: JSON.stringify(getCleanCanvasData())
             }).then(res => res.json()).then(data => {
                 btnSave.innerHTML = `Đã lưu xong!`; btnSave.classList.replace('bg-indigo-600', 'bg-emerald-500');
                 setTimeout(() => { btnSave.innerHTML = `Lưu thiết kế`; btnSave.classList.replace('bg-emerald-500', 'bg-indigo-600'); }, 2000);
             });
+        }
+
+        function getCleanCanvasData() {
+            let rawData = getCanvasData();
+            let jsonString = JSON.stringify(rawData);
+            
+            // Lấy tên miền hiện tại (vd: http://localhost:8000 hoặc https://chronos.io.vn)
+            const currentDomain = window.location.origin; 
+            
+            // Xóa sạch tên miền khỏi các đường link, biến chúng thành link tương đối (/storage/...)
+            jsonString = jsonString.split(currentDomain).join(''); 
+            
+            return JSON.parse(jsonString);
         }
     </script>
 </body>

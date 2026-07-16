@@ -111,7 +111,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/meetings/{id}/process-validation', [MeetingController::class, 'processValidation']);
     });
 
-    // Các Route phục vụ màn hình chạy trực tiếp (Không cần khóa quyền nghiêm ngặt để nhân viên trực có thể mở)
+    // Các Route phục vụ màn hình chạy trực tiếp 
     Route::get('/meetings/{meeting}/welcome', [MeetingController::class, 'welcomeScreen'])->name('meetings.welcome');
     Route::get('/meetings/{meeting}/online', [MeetingController::class, 'onlineCheckin'])->name('meetings.online');
     Route::get('/meetings/{meeting}/game', [MeetingController::class, 'game'])->name('meetings.game');

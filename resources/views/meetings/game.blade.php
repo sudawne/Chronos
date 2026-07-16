@@ -27,7 +27,6 @@
             width: 100vw; height: 100vh;
             z-index: 10;
             cursor: none;
-            /* GPU-accelerated canvas */
             will-change: contents;
         }
         #ai-cursor {
@@ -38,18 +37,12 @@
             border-radius: 50%;
             pointer-events: none;
             z-index: 9999;
-            background: rgba(79, 70, 229, 0.2);
-            border: 2px solid rgba(79, 70, 229, 0.8);
-            box-shadow: 0 0 10px rgba(79, 70, 229, 0.3);
+            background: rgba(79, 70, 229, 0.4);
+            border: 2px solid rgba(79, 70, 229, 1);
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
             will-change: transform;
             transform-origin: center;
-            /* Remove CSS transition – we handle smoothing in JS */
             opacity: 0;
-        }
-        #ai-cursor.grabbing {
-            background: rgba(225, 29, 72, 0.3);
-            border-color: rgba(225, 29, 72, 0.9);
-            box-shadow: 0 0 15px rgba(225, 29, 72, 0.4);
         }
         .hud-glass {
             background: rgba(15, 23, 42, 0.6);
@@ -91,7 +84,6 @@
         <span id="status-text">Đang tải mô hình AI...</span>
     </div>
 
-    <!-- MENU CHÍNH -->
     <div id="menu-game" class="absolute inset-0 bg-slate-900/60 backdrop-blur-md z-40 flex items-center justify-center">
         <div class="bg-white p-8 md:p-10 rounded-[2rem] shadow-2xl max-w-md w-full border border-slate-100 text-center">
             <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5">
@@ -118,7 +110,6 @@
         </div>
     </div>
 
-    <!-- MENU ĐIỀU KHIỂN -->
     <div id="menu-control" class="absolute inset-0 bg-slate-900/60 backdrop-blur-md z-40 flex items-center justify-center hidden opacity-0 scale-95" style="transition: opacity .3s, transform .3s;">
         <div class="bg-white p-8 md:p-10 rounded-[2rem] shadow-2xl max-w-md w-full border border-slate-100 text-center relative">
             <button onclick="backToMenu()" class="absolute top-6 left-6 text-slate-400 hover:text-slate-600 z-10 w-10 h-10 flex items-center justify-center bg-slate-100 rounded-full cursor-pointer">
@@ -147,7 +138,6 @@
         </div>
     </div>
 
-    <!-- GAME OVER -->
     <div id="menu-gameover" class="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-40 flex items-center justify-center hidden opacity-0 scale-95" style="transition: opacity .3s, transform .3s;">
         <div class="bg-white p-8 md:p-12 rounded-[2rem] shadow-2xl max-w-sm w-full border border-slate-100 text-center">
             <h2 class="text-3xl font-black text-slate-800 mb-2">GAME OVER</h2>
@@ -192,7 +182,6 @@ function backToMenu() {
         ctrlEl.classList.add('hidden');
         overEl.classList.add('hidden');
         document.getElementById('menu-game').classList.remove('hidden');
-        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }, 300);
 }
@@ -229,25 +218,23 @@ function triggerGameOver() {
 // CANVAS SETUP
 // ==========================================
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d', { alpha: false }); // alpha:false = faster compositing
+const ctx = canvas.getContext('2d', { alpha: false }); 
 const scoreEl = document.getElementById('score');
 const aiCursor = document.getElementById('ai-cursor');
 
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    // Re-cache road stripe after resize
     buildRoadStripe();
 }
 window.addEventListener('resize', resize);
 
 // ==========================================
-// HAND STATE (single source of truth)
+// TRẠNG THÁI BÀN TAY (Đã làm sạch code click)
 // ==========================================
 const H = {
-    x: 0, y: 0,       // smoothed position
-    tx: 0, ty: 0,      // target position
-    grabbing: false
+    x: 0, y: 0,       // Tọa độ đã làm mượt (Lerp)
+    tx: 0, ty: 0      // Tọa độ mục tiêu (Từ Camera)
 };
 
 // ==========================================
@@ -256,7 +243,6 @@ const H = {
 let score = 0, gameRunning = false;
 let objects = [], particles = [];
 
-// ---- Trail ring buffer ----
 const TRAIL_MAX = 14;
 const trailX = new Float32Array(TRAIL_MAX);
 const trailY = new Float32Array(TRAIL_MAX);
@@ -276,28 +262,22 @@ const fruitList  = ['🍎','🍌','🍉','🍊','🍍','🍓','🥝','🍇'];
 const obstacleList = ['🚘','🚖','🚔','🚍','🚚','🚧'];
 const playerCar  = '🏎️';
 
-// Pre-build emoji fonts once (avoid repeated ctx.font set)
 let emojiFont = '60px Arial';
 let playerFontSize = 60;
 let obstacleFontSize = 60;
-let fruitFontBase = 70; // 2 * r at base
+let fruitFontBase = 70;
 
 let player = { x: 0, y: 0, w: 0, h: 0 };
 let roadOffset = 0;
 
-// ---- Offscreen road stripe (OffscreenCanvas or regular canvas) ----
 let stripeCanvas = null, stripeCtx = null;
 function buildRoadStripe() {
-    // Build a tall stripe pattern once and reuse it
-    // (road center line drawn as an offscreen pattern)
     const w = 8, h = 80;
     stripeCanvas = document.createElement('canvas');
     stripeCanvas.width = w; stripeCanvas.height = h;
     stripeCtx = stripeCanvas.getContext('2d');
     stripeCtx.fillStyle = 'rgba(255,255,255,0.05)';
-    stripeCtx.fillRect(0, 0, w, 40); // dash
-    // gap is transparent
-    // We'll tile this using createPattern
+    stripeCtx.fillRect(0, 0, w, 40); 
 }
 
 let roadPattern = null;
@@ -317,7 +297,6 @@ function initGameData() {
     lastFruitTime = 0;
     roadOffset = 0;
 
-    // Scale sizes once
     const s = canvas.width / 800;
     playerFontSize = Math.round(60 * s);
     obstacleFontSize = playerFontSize;
@@ -326,37 +305,21 @@ function initGameData() {
 
     emojiFont = `${playerFontSize}px Arial`;
 
-    // Center hand at start
     H.x = H.tx = canvas.width / 2;
     H.y = H.ty = canvas.height / 2;
 }
 
-// ==========================================
-// OBJECT POOLS — avoid GC pressure
-// ==========================================
 const obstaclePool = [];
-function getObstacle() {
-    return obstaclePool.pop() || {};
-}
-function releaseObstacle(o) {
-    if (obstaclePool.length < 40) obstaclePool.push(o);
-}
+function getObstacle() { return obstaclePool.pop() || {}; }
+function releaseObstacle(o) { if (obstaclePool.length < 40) obstaclePool.push(o); }
 
 const particlePool = [];
-function getParticle() {
-    return particlePool.pop() || {};
-}
-function releaseParticle(p) {
-    if (particlePool.length < 100) particlePool.push(p);
-}
+function getParticle() { return particlePool.pop() || {}; }
+function releaseParticle(p) { if (particlePool.length < 100) particlePool.push(p); }
 
 const fruitPool = [];
-function getFruit() {
-    return fruitPool.pop() || {};
-}
-function releaseFruit(f) {
-    if (fruitPool.length < 40) fruitPool.push(f);
-}
+function getFruit() { return fruitPool.pop() || {}; }
+function releaseFruit(f) { if (fruitPool.length < 40) fruitPool.push(f); }
 
 // ==========================================
 // GAME 1: ĐUA XE
@@ -364,11 +327,9 @@ function releaseFruit(f) {
 let lastObstacleTime = 0;
 
 function updateRaceGame(dt) {
-    // Background
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Road stripe — use pattern translated by roadOffset
     roadOffset = (roadOffset + 8 * dt * 60) % 80;
     ensureRoadPattern();
     if (roadPattern) {
@@ -379,18 +340,14 @@ function updateRaceGame(dt) {
         ctx.restore();
     }
 
-    // Player position
     player.x = H.x - player.w / 2;
     player.y = canvas.height - player.h - 80;
 
-    // Batch draw: set font once
     ctx.font = emojiFont;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-
     ctx.fillText(playerCar, player.x + player.w / 2, player.y + player.h / 2);
 
-    // Spawn obstacles
     const now = performance.now();
     const spawnInterval = Math.max(400, 800 - score * 10);
     if (now - lastObstacleTime > spawnInterval) {
@@ -405,7 +362,6 @@ function updateRaceGame(dt) {
         objects.push(o);
     }
 
-    // Update & draw obstacles (font already set above)
     const margin = player.w * 0.2;
     const px1 = player.x + margin, px2 = player.x + player.w - margin;
     const py1 = player.y + margin, py2 = player.y + player.h - margin;
@@ -413,10 +369,8 @@ function updateRaceGame(dt) {
     for (let i = objects.length - 1; i >= 0; i--) {
         const o = objects[i];
         o.y += o.speed * dt * 60;
-
         ctx.fillText(o.type, o.x + o.w / 2, o.y + o.h / 2);
 
-        // AABB collision
         if (px1 < o.x + o.w - margin && px2 > o.x + margin &&
             py1 < o.y + o.h - margin && py2 > o.y + margin) {
             triggerGameOver();
@@ -436,11 +390,9 @@ function updateRaceGame(dt) {
 // GAME 2: CHÉM TRÁI CÂY
 // ==========================================
 let lastFruitTime = 0;
-
-// Pre-built gradient for trail (avoid recreating each frame)
 let trailGrad = null;
+
 function buildTrailGradient(ax, ay, bx, by) {
-    // Only build when we have meaningful length
     const len = Math.hypot(bx - ax, by - ay);
     if (len < 2) return null;
     try {
@@ -455,7 +407,6 @@ function updateFruitGame(dt) {
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Spawn fruit
     const now = performance.now();
     const spawnInterval = Math.max(400, 1000 - score * 20);
     if (now - lastFruitTime > spawnInterval) {
@@ -473,13 +424,11 @@ function updateFruitGame(dt) {
         objects.push(f);
     }
 
-    // Draw trail — single path for all segments
     if (trailLen > 1) {
         ctx.save();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        // Head and tail of trail for gradient
         const tailI = (trailHead - trailLen + TRAIL_MAX) % TRAIL_MAX;
         const headI = (trailHead - 1 + TRAIL_MAX) % TRAIL_MAX;
         const grad = buildTrailGradient(trailX[tailI], trailY[tailI], trailX[headI], trailY[headI]);
@@ -499,7 +448,6 @@ function updateFruitGame(dt) {
         ctx.restore();
     }
 
-    // Draw particles
     ctx.save();
     for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
@@ -521,7 +469,6 @@ function updateFruitGame(dt) {
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    // Draw fruits & collision (font set once per batch)
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -531,12 +478,10 @@ function updateFruitGame(dt) {
         f.y += f.vy * dt * 60;
         f.vy += f.gravity * dt * 60;
 
-        // Set font per-fruit (r varies) — but only change when needed
         const fSize = Math.round(f.r * 2);
         ctx.font = `${fSize}px Arial`;
         ctx.fillText(f.type, f.x, f.y);
 
-        // Collision check against trail
         let hit = false;
         const hitR = f.r + 15;
         const hitR2 = hitR * hitR;
@@ -548,7 +493,6 @@ function updateFruitGame(dt) {
         }
 
         if (hit) {
-            // Burst particles
             for (let k = 0; k < 5; k++) {
                 const p = getParticle();
                 p.x = f.x; p.y = f.y;
@@ -574,31 +518,27 @@ function updateFruitGame(dt) {
 }
 
 // ==========================================
-// MAIN LOOP
+// VÒNG LẶP CHÍNH (LÀM MƯỢT LERP)
 // ==========================================
 let lastTime = 0;
-
-// DOM cursor update — batch with rAF, avoid thrashing
-let cursorX = 0, cursorY = 0, cursorGrabbing = false;
-let cursorDirty = false;
+let cursorX = 0, cursorY = 0;
 
 function mainLoop(ts) {
     const dt = Math.min((ts - lastTime) / 1000, 0.05);
     lastTime = ts;
 
-    // Smooth hand position — tuned lerp (less aggressive = smoother)
-    const alpha = 1 - Math.pow(0.1, dt * 60); // slower follow = smoother
+    // THUẬT TOÁN LERP: Hệ số 0.35 giúp lướt siêu mượt, loại bỏ rung giật
+    const alpha = 0.35;
     H.x += (H.tx - H.x) * alpha;
     H.y += (H.ty - H.y) * alpha;
 
-    // Cursor DOM update — only write when changed
     const nx = Math.round(H.x);
     const ny = Math.round(H.y);
-    if (nx !== cursorX || ny !== cursorY || H.grabbing !== cursorGrabbing) {
-        cursorX = nx; cursorY = ny; cursorGrabbing = H.grabbing;
+    
+    // Cập nhật DOM Cursor
+    if (nx !== cursorX || ny !== cursorY) {
+        cursorX = nx; cursorY = ny;
         aiCursor.style.transform = `translate3d(${nx}px,${ny}px,0)`;
-        if (H.grabbing) aiCursor.classList.add('grabbing');
-        else aiCursor.classList.remove('grabbing');
     }
 
     if (gameRunning) {
@@ -606,30 +546,25 @@ function mainLoop(ts) {
         if (currentGame === 'fruit') updateFruitGame(dt);
         else updateRaceGame(dt);
     }
-    // No clearRect when not running — avoid unnecessary GPU work
 
     requestAnimationFrame(mainLoop);
 }
 
 // ==========================================
-// INPUT HANDLERS
+// ĐIỀU KHIỂN DỰ PHÒNG (CHUỘT/CẢM ỨNG)
 // ==========================================
-window.addEventListener('mousedown',  () => H.grabbing = true);
-window.addEventListener('mouseup',    () => H.grabbing = false);
 window.addEventListener('mousemove',  e  => {
     if (controlMode === 'touch') { H.tx = e.clientX; H.ty = e.clientY; }
 });
-window.addEventListener('touchstart', () => H.grabbing = true);
-window.addEventListener('touchend',   () => H.grabbing = false);
 window.addEventListener('touchmove',  e  => {
     if (controlMode === 'touch') {
         H.tx = e.touches[0].clientX;
         H.ty = e.touches[0].clientY;
     }
-}, { passive: true }); // passive:true = no scroll-block overhead
+}, { passive: true });
 
 // ==========================================
-// AI — MEDIAPIPE HAND TRACKING
+// LÕI AI: MEDIAPIPE HAND TRACKING (TỐI ƯU HÓA)
 // ==========================================
 let handsInstance = null;
 let cameraInstance = null;
@@ -642,28 +577,26 @@ function initAI() {
     handsInstance = new Hands({
         locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
     });
+    
+    // TỐI ƯU CẤU HÌNH AI: Mô hình siêu nhẹ, quét 1 tay
     handsInstance.setOptions({
         maxNumHands: 1,
-        modelComplexity: 0,           // lightest model
-        minDetectionConfidence: 0.6,
+        modelComplexity: 0, 
+        minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5
     });
 
-    let lastHandTime = 0;
     handsInstance.onResults(results => {
-        const now = performance.now();
-        if (now - lastHandTime < 50) return; // throttle to ~20fps (was 30ms → 33fps)
-        lastHandTime = now;
-
         if (results.multiHandLandmarks?.length > 0) {
             statusDiv.classList.add('hidden');
             const lm = results.multiHandLandmarks[0];
-            const idx = lm[8]; // index fingertip
-            const thm = lm[4]; // thumb tip
-            // Mirror X (camera is flipped)
+            
+            // Chỉ lấy duy nhất tọa độ ngón trỏ (Landmark số 8)
+            const idx = lm[8]; 
+
+            // Ánh xạ tọa độ màn hình và lật trục X
             H.tx = (1 - idx.x) * canvas.width;
             H.ty = idx.y * canvas.height;
-            H.grabbing = Math.hypot(thm.x - idx.x, thm.y - idx.y) < 0.08;
         }
     });
 
@@ -672,7 +605,8 @@ function initAI() {
         onFrame: async () => {
             if (handsInstance) await handsInstance.send({ image: videoEl });
         },
-        width: 256,   // lower res = faster inference (was 320x240)
+        // Độ phân giải thấp giúp đẩy FPS lên tối đa
+        width: 256,   
         height: 192
     });
 
@@ -697,12 +631,11 @@ function stopAI() {
 }
 
 // ==========================================
-// BOOT
+// KHỞI ĐỘNG
 // ==========================================
 resize();
 buildRoadStripe();
 
-// Init hand center after resize
 H.x = H.tx = canvas.width / 2;
 H.y = H.ty = canvas.height / 2;
 

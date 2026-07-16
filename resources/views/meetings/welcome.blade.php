@@ -182,50 +182,63 @@
                 .catch(err => { alert("Vui lòng cấp quyền Camera trên trình duyệt!"); });
         }
 
-        function captureAndSendFrame() {
-            if (!video || !canvas || isProcessing || isWelcoming) return;
+        async function captureAndSendFrame() {
+    if (!video || !canvas || isProcessing || isWelcoming) return;
 
-            isProcessing = true;
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    isProcessing = true;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+    const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+    let formData = new FormData();
+    formData.append('image_base64', base64Image);
+    formData.append('meeting_id', {{ $meeting->id }});
 
-            let formData = new FormData();
-            formData.append('image_base64', base64Image);
-            formData.append('meeting_id', {{ $meeting->id }});
+    try {
+        // 1. Gọi AI nhận diện (HTTPS)
+        const res = await fetch('https://ai.chronos.io.vn/nhan_dien', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
 
-            fetch('http://localhost:8001/nhan_dien', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success' && data.detections && data.detections.length > 0) {
-                    let person = data.detections[0];
+        if (data.status === 'success' && data.detections?.length > 0) {
+            let person = data.detections[0];
 
-                    if (person.name && person.name !== "Unknown" && person.name !== "Khach La") {
-                        // LOGIC KIỂM TRA CHỚP MẮT
-                        if (REQUIRE_BLINK && !person.is_blinking) {
-                            showBlinkPrompt(person.name);
-                        } else {
-                            hideBlinkPrompt();
-                            triggerWelcome({
-                                name: person.name,
-                                position: person.position || '',
-                                seat: person.seat || '',
-                                image_url: person.image_url || '/images/default-avatar.png'
-                            });
-                        }
-                    }
+            if (person.name && person.name !== "Unknown" && person.name !== "Khach La") {
+                if (REQUIRE_BLINK && !person.is_blinking) {
+                    showBlinkPrompt(person.name);
                 } else {
                     hideBlinkPrompt();
+                    
+                    // HIỂN THỊ LỜI CHÀO NGAY (Cái cũ bạn làm rất tốt)
+                    triggerWelcome({
+                        name: person.name,
+                        position: person.position || '',
+                        seat: person.seat || '',
+                        image_url: person.image_url || '/images/default-avatar.png'
+                    });
+
+                    // 2. GỬI ĐIỂM DANH BACKGROUND (Không chặn hiển thị)
+                    // Thêm 'Accept': 'application/json' để Laravel hiểu đây là request API
+                    fetch(`/api/meetings/{{ $meeting->id }}/checkin`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: new URLSearchParams({ 'name': person.name })
+                    }).catch(err => console.log("Gửi điểm danh không thành công (nếu đã điểm danh rồi thì bỏ qua)"));
                 }
-            })
-            .catch(err => console.error("Đang quét AI..."))
-            .finally(() => { isProcessing = false; });
+            }
         }
+    } catch (err) {
+        // console.error("Quét AI...");
+    } finally {
+        isProcessing = false;
+    }
+}
 
         setInterval(captureAndSendFrame, 1500);
 
