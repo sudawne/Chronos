@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 
 class AdminUserController extends Controller
 {
-    // [ĐÃ SỬA]: Chuyển từ checkAdmin cứng nhắc sang checkPermission linh hoạt
     private function checkPermission($permissionCode) 
     {
         if (!Auth::check()) abort(403, 'Từ chối truy cập! Vui lòng đăng nhập.');
@@ -18,7 +17,6 @@ class AdminUserController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
-        // Nếu là Admin thì cho qua, nếu không phải Admin thì kiểm tra xem có quyền lẻ tương ứng không
         if (!$user->hasRole('Admin') && !$user->can($permissionCode)) {
             abort(403, "Từ chối truy cập! Bạn cần có quyền [{$permissionCode}] để thực hiện thao tác này.");
         }
@@ -32,7 +30,6 @@ class AdminUserController extends Controller
                 'Thêm mới' => 'user.create', 
                 'Chỉnh sửa' => 'user.edit', 
                 'Xóa' => 'user.delete',
-                // [ĐÃ THÊM]: Quyền Custom theo yêu cầu của bạn
                 'Phân quyền nâng cao (Custom)' => 'user.custom' 
             ],
             'Quản lý Sự kiện' => ['Xem kho lưu trữ' => 'meeting.view', 'Tạo sự kiện' => 'meeting.create', 'Thiết kế Welcome' => 'meeting.design', 'Xóa sự kiện' => 'meeting.delete'],
@@ -59,7 +56,6 @@ class AdminUserController extends Controller
     {
         $query = User::query();
 
-        // Lọc theo từ khóa (Tên hoặc Email)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -68,15 +64,12 @@ class AdminUserController extends Controller
             });
         }
 
-        // Lọc theo Role
         if ($request->filled('role')) {
-            $query->role($request->role); // Yêu cầu sử dụng Spatie Permission
+            $query->role($request->role); 
         }
 
-        // Truyền $roles ra view để select box hoạt động
         $roles = Role::all();
         
-        // Giữ lại query string khi phân trang
         $users = $query->paginate(15)->withQueryString(); 
 
         return view('admin.users.index', compact('users', 'roles'));
@@ -84,7 +77,6 @@ class AdminUserController extends Controller
 
     public function edit(User $user)
     {
-        // Yêu cầu quyền sửa user
         $this->checkPermission('user.edit'); 
         $roles = Role::all();
         $modules = $this->getModules(); 
@@ -96,30 +88,21 @@ class AdminUserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        // Yêu cầu quyền sửa user
         $this->checkPermission('user.edit'); 
         
-        // 1. Cập nhật nhóm Chức vụ
         $user->syncRoles($request->input('roles', []));
         
-        // 2. Tẩy não bộ nhớ Cache
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         $user->refresh(); 
         
-        // 3. Phân tách quyền độc lập (Custom)
         $rolePermissions = $user->getPermissionsViaRoles()->pluck('name')->toArray();
         $inputPermissions = $request->input('permissions', []);
         $permissionsToSync = array_diff($inputPermissions, $rolePermissions);
         
         $user->syncPermissions($permissionsToSync);
 
-        // ==============================================================
-        // [LƯỚI BẢO VỆ]: Tránh việc tự "đá" chính mình ra khỏi hệ thống
-        // ==============================================================
         if (Auth::id() === $user->id) {
-            // Nếu bạn vừa tự bỏ role Admin và cũng quên tích quyền Xem/Sửa tài khoản
             if (!$user->hasRole('Admin') && !$user->hasPermissionTo('user.view')) {
-                // Hệ thống sẽ tự động ép cấp quyền để bạn không bị văng ra trang 403
                 $user->givePermissionTo(['user.view', 'user.edit', 'user.custom']);
             }
         }
@@ -132,7 +115,6 @@ class AdminUserController extends Controller
     // ==========================================
     public function matrix()
     {
-        // Sử dụng quyền custom vừa tạo để bảo vệ khu vực Ma trận
         $this->checkPermission('user.custom'); 
         $roles = Role::all();
         $modules = $this->getModules();

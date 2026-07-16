@@ -4,8 +4,6 @@
 
 @section('content')
 <div class="px-4 lg:px-8 pb-12 min-h-screen bg-slate-50/50">
-    
-    {{-- Header Section --}}
     <div class="mb-8 pt-6">
         <a href="{{ route('meetings.show', $meeting->id) }}" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors mb-4">
             <span class="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại sự kiện
@@ -25,8 +23,6 @@
             </button>
         </div>
     </div>
-
-    {{-- Bảng Danh sách Đại biểu --}}
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -41,10 +37,7 @@
                 <tbody class="divide-y divide-slate-100" id="guest-table-body">
                     @foreach($guests as $guest)
                         @php
-                            // Bỏ qua những người chưa có ảnh vật lý
                             if (!$guest->image_filename) continue;
-                            
-                            // Nếu đã có face_vector -> Đã quét hợp lệ. Nếu chưa -> Pending
                             $isProcessed = !is_null($guest->face_vector);
                         @endphp
                         
@@ -63,8 +56,6 @@
                                     <img src="{{ asset('storage/meetings/'.$meeting->id.'/faces/'.$guest->image_filename) }}" class="w-full h-full object-cover" alt="Ảnh">
                                 </div>
                             </td>
-                            
-                            {{-- CỘT TRẠNG THÁI AI --}}
                             <td class="px-6 py-4 status-cell">
                                 @if($isProcessed)
                                     <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-bold">
@@ -102,7 +93,6 @@ document.getElementById('startValidation').addEventListener('click', async funct
         let guestId = row.getAttribute('data-guest-id');
         let statusCell = row.querySelector('.status-cell');
 
-        // Hiển thị trạng thái đang gửi cho dòng hiện tại
         statusCell.innerHTML = `
             <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg text-sm font-bold">
                 <span class="material-symbols-outlined text-[18px] animate-spin">settings_b_roll</span> Đang phân tích...
@@ -122,7 +112,6 @@ document.getElementById('startValidation').addEventListener('click', async funct
 
             let result = await response.json();
             
-            // XỬ LÝ GIAO DIỆN DỰA VÀO CÂU TRẢ LỜI CỦA PYTHON AI
             if (result.status === 'success') {
                 statusCell.innerHTML = `
                     <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-bold">
@@ -166,7 +155,6 @@ document.getElementById('startValidation').addEventListener('click', async funct
         }
     }
     
-    // Khôi phục nút bấm sau khi chạy xong
     btn.disabled = false;
     btn.innerHTML = `<span class="material-symbols-outlined">done_all</span> Quét hoàn tất (${successCount} Tốt / ${errorCount} Lỗi)`;
     btn.classList.replace('bg-slate-400', 'bg-indigo-600');

@@ -51,12 +51,9 @@
     </div>
 
     <script>
-        // Cấu hình âm thanh Beep khi quét thành công
         const beepSound = new Audio('https://www.soundjay.com/buttons/beep-07a.mp3');
 
-        // Hàm bắt sự kiện quét thành công
         function onScanSuccess(decodedText, decodedResult) {
-            // Tạm thời dừng máy quét để tránh quét đúp 1 mã liên tục
             html5QrcodeScanner.pause();
             beepSound.play();
 
@@ -64,7 +61,6 @@
                 // Giải mã chuỗi JSON từ QR (ví dụ: {"m":1,"g":15})
                 const qrData = JSON.parse(decodedText);
 
-                // Gửi dữ liệu về API Laravel kiểm tra
                 fetch('{{ route("api.process_qr") }}', {
                     method: 'POST',
                     headers: {
@@ -77,7 +73,6 @@
                 .then(data => {
                     showStatus(data);
                     
-                    // Đợi 2.5 giây cho người dùng đọc thông báo rồi ẩn đi, mở lại máy quét
                     setTimeout(() => {
                         hideStatus();
                         html5QrcodeScanner.resume();
@@ -89,25 +84,21 @@
                 });
 
             } catch (e) {
-                // Lỗi này xảy ra khi đưa nhầm mã QR không phải định dạng JSON của hệ thống
                 showStatus({ status: 'error', message: 'Mã QR không hợp lệ đối với hệ thống này!' });
                 setTimeout(() => { hideStatus(); html5QrcodeScanner.resume(); }, 2500);
             }
         }
 
-        // Bắt lỗi camera ngầm (chủ yếu phục vụ ghi log)
         function onScanFailure(error) {
             // console.warn(`Code scan error = ${error}`);
         }
 
-        // Hàm xử lý giao diện UI Thông báo
         function showStatus(data) {
             const box = document.getElementById('status-box');
             const icon = document.getElementById('status-icon');
             const title = document.getElementById('status-title');
             const msg = document.getElementById('status-msg');
 
-            // Reset màu sắc của icon
             icon.className = 'w-12 h-12 rounded-full flex items-center justify-center shrink-0';
 
             if (data.status === 'success') {
@@ -130,7 +121,6 @@
                 msg.innerText = data.message;
             }
 
-            // Hiện popup lên
             box.classList.remove('translate-y-32', 'opacity-0');
         }
 
@@ -138,7 +128,6 @@
             document.getElementById('status-box').classList.add('translate-y-32', 'opacity-0');
         }
 
-        // Khởi tạo máy quét HTML5 QRCode
         let html5QrcodeScanner = new Html5QrcodeScanner(
             "reader", 
             { fps: 10, qrbox: {width: 250, height: 250} },
@@ -148,7 +137,6 @@
         try {
             html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         } catch (e) {
-            // Nếu trình duyệt chặn hoàn toàn hoặc không có thiết bị, hiển thị dòng cảnh báo vàng đỏ
             document.getElementById('camera-warning').classList.remove('hidden');
         }
     </script>

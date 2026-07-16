@@ -37,18 +37,15 @@
             position: absolute; cursor: grab; user-select: none;
             padding: 4px 8px; border: 2px dashed transparent;
         }
-        /* Chỉ đổi màu viền ảo khi rê chuột vào Chữ/Ảnh, bỏ qua Avatar */
         .draggable:not([data-type="avatar"]):hover { border-color: rgba(156, 163, 175, 0.5); }
         .draggable:active { cursor: grabbing; }
 
-        /* Hiệu ứng Đang chọn (Focus) cho Chữ/Ảnh */
         .selected-element:not([data-type="avatar"]) {
             border-color: #6366f1 !important;
             background: rgba(99, 102, 241, 0.15);
             z-index: 50;
         }
 
-        /* [ĐÃ FIX] Hiệu ứng Đang chọn cho AVATAR: Dùng outline rời thay vì đè lên border */
         .selected-element[data-type="avatar"] {
             outline: 3px dashed #6366f1 !important;
             outline-offset: 4px;
@@ -334,10 +331,10 @@
             el.dataset.type = 'avatar';
             el.style.left = '100px';
             el.style.top = '150px';
-            el.style.padding = '0'; // [ĐÃ FIX] Tránh lọt khe padding
+            el.style.padding = '0'; 
             el.style.borderRadius = '50%';
             el.style.overflow = 'hidden';
-            el.style.border = '6px solid #ffffff'; // Mặc định độ dày viền 6px, màu trắng
+            el.style.border = '6px solid #ffffff'; 
             el.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
             el.style.width = '240px';
             el.style.height = '240px';
@@ -444,8 +441,6 @@
             else if (el.dataset.type === 'avatar') {
                 document.getElementById('prop-avatar-panel').classList.remove('hidden');
                 document.getElementById('prop-text-panel').classList.add('hidden');
-                
-                // Dùng borderTopWidth và borderTopColor thay vì borderWidth/Color
                 document.getElementById('prop-avatar-size').value = parseInt(window.getComputedStyle(el).width) || 200;
                 document.getElementById('prop-avatar-border-width').value = parseInt(window.getComputedStyle(el).borderTopWidth) || 0;
                 document.getElementById('prop-avatar-border-color').value = rgbToHex(window.getComputedStyle(el).borderTopColor);
@@ -526,15 +521,11 @@
         });
 
         // Bắt sự kiện chọn Căn lề
-        // Bắt sự kiện chọn Căn lề (Đã tối ưu cho cả Flexbox và Block)
         document.getElementById('prop-text-align').addEventListener('change', (e) => {
             if(selectedElement && selectedElement.dataset.type === 'text') {
-                const alignValue = e.target.value; // left, center, right
-                
-                // 1. Căn lề cho thẻ Block thông thường
+                const alignValue = e.target.value; 
                 selectedElement.style.textAlign = alignValue;
                 
-                // 2. Căn lề cho thẻ Flexbox (Đề phòng thẻ chữ có class 'flex' hoặc 'inline-flex')
                 if (alignValue === 'center') {
                     selectedElement.style.justifyContent = 'center';
                 } else if (alignValue === 'right') {
@@ -543,7 +534,6 @@
                     selectedElement.style.justifyContent = 'flex-start';
                 }
                 
-                // 3. Mẹo UX: Tự động bung rộng khung chữ ra bằng khung ảnh (240px) nếu đang để trống width
                 const currentWidth = selectedElement.style.width;
                 if (alignValue !== 'left' && (!currentWidth || currentWidth === 'max-content' || currentWidth === 'auto')) {
                     selectedElement.style.width = '240px';
@@ -554,15 +544,13 @@
 
         // --- SỰ KIỆN ĐIỀU CHỈNH HÌNH ẢNH (LOGO) ---
         
-        // 1. Kéo giãn đều (Scale)
+        // Kéo giãn đều
         document.getElementById('prop-image-scale').addEventListener('input', (e) => { 
             if(selectedElement && selectedElement.dataset.type === 'image') {
                 const img = selectedElement.querySelector('img');
                 if (img) {
                     img.style.width = `${e.target.value}px`;
-                    img.style.height = 'auto'; // Trả về auto để giữ tỷ lệ
-                    
-                    // Cập nhật lại 2 ô Tự do để đồng bộ số liệu
+                    img.style.height = 'auto'; 
                     setTimeout(() => {
                         document.getElementById('prop-image-width').value = e.target.value;
                         document.getElementById('prop-image-height').value = parseInt(window.getComputedStyle(img).height);
@@ -571,18 +559,18 @@
             }
         });
 
-        // 2. Kéo Chiều rộng độc lập
+        // Kéo Chiều rộng độc lập
         document.getElementById('prop-image-width').addEventListener('input', (e) => { 
             if(selectedElement && selectedElement.dataset.type === 'image') {
                 const img = selectedElement.querySelector('img');
                 if (img) {
                     img.style.width = `${e.target.value}px`;
-                    document.getElementById('prop-image-scale').value = e.target.value; // Đồng bộ ô scale
+                    document.getElementById('prop-image-scale').value = e.target.value; 
                 }
             }
         });
 
-        // 3. Kéo Chiều cao độc lập
+        // Kéo Chiều cao độc lập
         document.getElementById('prop-image-height').addEventListener('input', (e) => { 
             if(selectedElement && selectedElement.dataset.type === 'image') {
                 const img = selectedElement.querySelector('img');
@@ -592,12 +580,12 @@
             }
         });
 
-        // 4. Nút Khôi phục tỷ lệ gốc
+        // Nút Khôi phục tỷ lệ gốc
         document.getElementById('btn-reset-aspect-ratio').addEventListener('click', () => {
             if(selectedElement && selectedElement.dataset.type === 'image') {
                 const img = selectedElement.querySelector('img');
                 if (img) {
-                    img.style.height = 'auto'; // Reset lại height
+                    img.style.height = 'auto'; 
                     setTimeout(() => {
                         document.getElementById('prop-image-height').value = parseInt(window.getComputedStyle(img).height);
                     }, 10);
@@ -610,7 +598,7 @@
             let [r, g, b] = match; return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
         }
 
-        // --- ĐÓNG GÓI DỮ LIỆU ĐỂ LƯU ---
+        // --- LƯU ---
         function getCanvasData() {
             const elementsData = [];
             document.querySelectorAll('.draggable').forEach(el => {
@@ -624,11 +612,9 @@
                     data.color = window.getComputedStyle(el).color;
                     data.fontWeight = window.getComputedStyle(el).fontWeight;
                     
-                    // Lưu chiều rộng
                     const w = el.style.width;
                     data.width = (w !== 'max-content' && w !== '' && w !== 'auto') ? parseInt(window.getComputedStyle(el).width) : 'max-content';
                     
-                    // Lưu căn lề (Thêm getComputedStyle để độ chính xác tuyệt đối)
                     data.align = el.style.textAlign || window.getComputedStyle(el).textAlign || 'left';
                     
                 } else if (type === 'image') {
@@ -653,7 +639,6 @@
             };
         }
 
-        // --- LOGIC TEMPLATE & LƯU CHUNG ---
         let globalTemplates = [];
 
         document.addEventListener('DOMContentLoaded', loadGlobalTemplates);
@@ -728,25 +713,22 @@
         }
 
         function applyTemplate(templateId) {
-        // 1. Hiển thị thông báo tùy chỉnh bằng SweetAlert2
         Swal.fire({
             title: 'Áp dụng mẫu thiết kế?',
             text: 'Hành động này sẽ ghi đè lên toàn bộ thiết kế hiện tại của bạn. Bạn có chắc chắn muốn tiếp tục?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#4f46e5', // Màu chàm (Indigo 600) cho đồng bộ giao diện
-            cancelButtonColor: '#94a3b8',  // Màu xám (Slate 400) cho nút Hủy
+            confirmButtonColor: '#4f46e5', 
+            cancelButtonColor: '#94a3b8',  
             confirmButtonText: 'Đồng ý áp dụng',
             cancelButtonText: 'Hủy bỏ'
         }).then((result) => {
-            // 2. Chỉ thực thi logic khi người dùng bấm nút "Đồng ý"
             if (result.isConfirmed) {
                 const tpl = globalTemplates.find(t => t.id === templateId);
                 if (!tpl) return;
 
                 const data = typeof tpl.config === 'string' ? JSON.parse(tpl.config) : tpl.config;
                 
-                // Xử lý nền
                 document.getElementById('bgColor').value = data.bg_color || '#0f172a';
                 artboard.style.backgroundColor = data.bg_color || '#0f172a';
                 
@@ -758,10 +740,8 @@
                     document.getElementById('bgImage').value = '';
                 }
 
-                // Xóa các thành phần cũ
                 document.querySelectorAll('.draggable').forEach(el => el.remove());
 
-                // Vẽ lại các thành phần mới từ Template
                 if (data.elements) {
                     data.elements.forEach(elData => {
                         const el = document.createElement('div');
@@ -851,11 +831,8 @@
         function getCleanCanvasData() {
             let rawData = getCanvasData();
             let jsonString = JSON.stringify(rawData);
-            
-            // Lấy tên miền hiện tại (vd: http://localhost:8000 hoặc https://chronos.io.vn)
+            // Lấy tên miền hiện tại
             const currentDomain = window.location.origin; 
-            
-            // Xóa sạch tên miền khỏi các đường link, biến chúng thành link tương đối (/storage/...)
             jsonString = jsonString.split(currentDomain).join(''); 
             
             return JSON.parse(jsonString);

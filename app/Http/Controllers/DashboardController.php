@@ -52,7 +52,7 @@ class DashboardController extends Controller
         $avgGuests = $totalMeetings > 0 ? round($totalGuests / $totalMeetings) : 0;
 
         // ==========================================
-        // 3. XỬ LÝ BIỂU ĐỒ LƯU LƯỢNG (LINE CHART)
+        // 3. XỬ LÝ BIỂU ĐỒ LƯU LƯỢNG
         // ==========================================
         $attendances = Guest::whereIn('meeting_id', $meetingIds)
             ->where('is_attended', true)
@@ -100,7 +100,7 @@ class DashboardController extends Controller
         }
 
         // ==========================================
-        // 4. PHÂN TÍCH THEO ĐỊA ĐIỂM (BAR CHART)
+        // 4. PHÂN TÍCH THEO ĐỊA ĐIỂM
         // ==========================================
         $topLocations = Meeting::whereIn('id', $meetingIds)
             ->select('location', DB::raw('count(*) as total'))
@@ -122,7 +122,7 @@ class DashboardController extends Controller
         }
 
         // ==========================================
-        // 5. PHÂN BỔ CHỨC VỤ (TOP POSITIONS)
+        // 5. PHÂN BỔ CHỨC VỤ
         // ==========================================
         $topPositions = Guest::whereIn('meeting_id', $meetingIds)
             ->whereNotNull('position')
@@ -134,7 +134,7 @@ class DashboardController extends Controller
             ->get();
 
         // ==========================================
-        // 6. BẢNG GIÁM SÁT CHI TIẾT (LỌC THEO KỲ)
+        // 6. BẢNG GIÁM SÁT CHI TIẾT
         // ==========================================
         $detailedMeetings = Meeting::withCount(['guests as total_guests', 'guests as checked_in_count' => function($q) {
                 $q->where('is_attended', true);
@@ -152,7 +152,7 @@ class DashboardController extends Controller
             $baseQuery->where('user_id', $user->id);
         }
 
-        // Lấy 4 cuộc họp gần nhất sắp/đang diễn ra (Kể cả ngoài kỳ lọc)
+        // Lấy 4 cuộc họp gần nhất 
         $upcomingMeetings = (clone $baseQuery)
             ->withCount('guests')
             ->where('end_time', '>=', $now->toDateTimeString())
@@ -160,7 +160,7 @@ class DashboardController extends Controller
             ->take(4)
             ->get();
 
-        // Lấy dữ liệu Đổ vào FullCalendar
+        // Lấy dữ liệu
         $calendarEvents = (clone $baseQuery)->get()->map(function($meeting) use ($now) {
             $isPast = Carbon::parse($meeting->end_time)->isPast();
             return [
@@ -169,7 +169,7 @@ class DashboardController extends Controller
                 'start' => Carbon::parse($meeting->start_time)->toIso8601String(),
                 'end' => Carbon::parse($meeting->end_time)->toIso8601String(),
                 'url' => route('meetings.show', $meeting->id),
-                'backgroundColor' => $isPast ? '#cbd5e1' : '#4f46e5', // Xám nếu đã xong, Indigo nếu sắp diễn ra
+                'backgroundColor' => $isPast ? '#cbd5e1' : '#4f46e5', 
                 'borderColor' => 'transparent'
             ];
         });

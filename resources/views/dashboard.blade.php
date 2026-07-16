@@ -281,7 +281,7 @@
                 </div>
             </div>
 
-            {{-- Cuốn Lịch FullCalendar (Chiếm 2 cột - Giao diện rộng rãi) --}}
+            {{-- Cuốn Lịch  --}}
             <div class="xl:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 p-6 overflow-hidden">
                 <style>
                     .fc-theme-standard th { border: none !important; font-family: 'Plus Jakarta Sans'; font-size: 13px; color: #64748b; text-transform: uppercase; padding: 10px 0;}
@@ -306,14 +306,12 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 
 <script>
-    // [QUAN TRỌNG] Gắn biến vào window để tránh lỗi "Identifier has already been declared" khi Swup đổi trang
     window.attendanceChartInstance = window.attendanceChartInstance || null;
     window.ratioChartInstance = window.ratioChartInstance || null;
     window.locationChartInstance = window.locationChartInstance || null;
     window.calendarInstance = window.calendarInstance || null;
 
     function initDashboardCharts() {
-        // 1. DỌN DẸP CANVAS CŨ TRƯỚC KHI VẼ MỚI (CHỐNG LỖI TREO BỘ NHỚ)
         if (window.attendanceChartInstance) { window.attendanceChartInstance.destroy(); }
         if (window.ratioChartInstance) { window.ratioChartInstance.destroy(); }
         if (window.locationChartInstance) { window.locationChartInstance.destroy(); }
@@ -321,7 +319,7 @@
 
         const tooltipConfig = { backgroundColor: '#1e293b', padding: 12, titleFont: { family: 'Plus Jakarta Sans', size: 13 }, bodyFont: { family: 'Plus Jakarta Sans', size: 14, weight: 'bold' }, cornerRadius: 8 };
 
-        // 2. VẼ BIỂU ĐỒ LINE
+        // VẼ BIỂU ĐỒ LINE
         const lineCanvas = document.getElementById('attendanceChart');
         if (lineCanvas) {
             const ctxLine = lineCanvas.getContext('2d');
@@ -339,7 +337,7 @@
             });
         }
 
-        // 3. VẼ BIỂU ĐỒ DOUGHNUT
+        // VẼ BIỂU ĐỒ DOUGHNUT
         const pieCanvas = document.getElementById('ratioChart');
         if (pieCanvas) {
             window.ratioChartInstance = new Chart(pieCanvas.getContext('2d'), {
@@ -349,7 +347,7 @@
             });
         }
 
-        // 4. VẼ BIỂU ĐỒ BAR
+        // VẼ BIỂU ĐỒ BAR
         const barCanvas = document.getElementById('locationChart');
         if (barCanvas) {
             window.locationChartInstance = new Chart(barCanvas.getContext('2d'), {
@@ -365,7 +363,7 @@
             });
         }
 
-        // 5. KHỞI TẠO CUỐN LỊCH
+        // KHỞI TẠO CUỐN LỊCH
         const calendarEl = document.getElementById('mini-calendar');
         if (calendarEl) {
             window.calendarInstance = new FullCalendar.Calendar(calendarEl, {
@@ -384,14 +382,12 @@
         }
     }
 
-    // Cơ chế an toàn kích hoạt
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initDashboardCharts);
     } else {
         initDashboardCharts();
     }
 
-    // Trigger vẽ lại biểu đồ khi Swup load xong nội dung HTML mới
     if (typeof swup !== 'undefined') {
         swup.hooks.on('page:view', initDashboardCharts);
     }

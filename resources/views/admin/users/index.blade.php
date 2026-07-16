@@ -180,19 +180,14 @@
 
 <script>
     function openPasswordModal(userId, userName) {
-        // Cập nhật tên user lên modal
         document.getElementById('modalUserName').innerText = userName;
         
-        // Tạo URL động (Bạn cần thay đổi tiền tố route tùy theo setup thực tế của bạn)
-        // Ví dụ: /admin/users/1/change-password
         document.getElementById('changePasswordForm').action = `/admin/users/${userId}/change-password`;
         
-        // Hiển thị modal
         const modal = document.getElementById('passwordModal');
         const modalContent = document.getElementById('passwordModalContent');
         modal.classList.remove('hidden');
         
-        // Add animation effect
         setTimeout(() => {
             modalContent.classList.remove('scale-95');
             modalContent.classList.add('scale-100');
@@ -203,7 +198,6 @@
         const modal = document.getElementById('passwordModal');
         const modalContent = document.getElementById('passwordModalContent');
         
-        // Remove animation effect
         modalContent.classList.remove('scale-100');
         modalContent.classList.add('scale-95');
         

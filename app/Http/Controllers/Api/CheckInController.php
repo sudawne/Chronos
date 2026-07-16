@@ -11,17 +11,11 @@ use Carbon\Carbon;
 
 class CheckInController extends Controller
 {
-    /**
-     * Xử lý dữ liệu điểm danh gửi từ lõi AI 
-     */
     public function submitCheckIn(Request $request)
     {
-        // 1. Nhận dữ liệu JSON từ phía Python gửi sang
         $eventId = $request->input('event_id');
         $guestId = $request->input('guest_id');
 
-        // 2. Kiểm tra thực thể trong Database
-        // Việc này đảm bảo AI không gửi nhầm ID không tồn tại
         $event = Event::find($eventId);
         $guest = Guest::find($guestId);
 
@@ -32,8 +26,6 @@ class CheckInController extends Controller
             ], 404);
         }
 
-        // 3. Kiểm tra trùng lặp (Anti-Spam)
-        // Nếu đại biểu đã đứng trước camera và được ghi nhận rồi, không cần ghi thêm dòng mới
         $alreadyCheckedIn = Attendance::where('event_id', $eventId)
                                       ->where('guest_id', $guestId)
                                       ->first();
@@ -46,15 +38,12 @@ class CheckInController extends Controller
             ], 200);
         }
 
-        // 4. Ghi nhận vào bảng attendances
-        // Lưu ý: Đảm bảo Model Attendance đã có $fillable cho 3 cột này
         $newRecord = Attendance::create([
             'event_id' => $eventId,
             'guest_id' => $guestId,
             'check_in_time' => Carbon::now(),
         ]);
 
-        // 5. Trả về phản hồi JSON cho Python
         return response()->json([
             'status' => 'success',
             'message' => 'Xin chào ' . $guest->name . ', điểm danh thành công!',

@@ -30,18 +30,13 @@ class ProfileController extends Controller
         ];
         
         if ($request->hasFile('avatar')) {
-            // Xóa ảnh cũ
             if ($user->avatar) {
-                // Đường dẫn trong DB đang là: /storage/avatars/abc.jpg
-                // Cần lấy phần: avatars/abc.jpg để Storage xóa đúng file
                 $oldPath = str_replace('/storage/', '', $user->avatar);
                 Storage::disk('public')->delete($oldPath);
             }
             
-            // Lưu ảnh mới vào storage/app/public/avatars
             $path = $request->file('avatar')->store('avatars', 'public');
             
-            // Lưu đường dẫn này vào DB
             $data['avatar'] = '/storage/'.$path;
         }
         

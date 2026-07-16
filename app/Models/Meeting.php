@@ -16,7 +16,6 @@ class Meeting extends Model
         'title', 'start_time', 'end_time', 'location', 'description', 'recognition_threshold', 'welcome_config'
     ];
 
-    // Một cuộc họp (Meeting) có nhiều khách mời (Guests)
     public function guests()
     {
         return $this->hasMany(Guest::class);

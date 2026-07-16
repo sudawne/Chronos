@@ -127,11 +127,9 @@
                 if (data.status === 'success' && data.detections && data.detections.length > 0) {
                     let person = data.detections[0];
                     if (person.name !== "Khach La" && person.name !== "Unknown") {
-                        // LOGIC LIVENESS (CHỚP MẮT)
                         if (REQUIRE_BLINK && !person.is_blinking) {
                             showBlinkPrompt();
                         } else {
-                            // Ẩn thông báo chớp mắt và show info
                             blinkAlert.classList.remove('opacity-100', 'translate-y-0');
                             blinkAlert.classList.add('opacity-0', 'translate-y-[-10px]');
                             showGuestInfo(person.name, person.position, person.seat, person.color);

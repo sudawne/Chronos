@@ -50,7 +50,6 @@ class GuestTicketMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            // ĐÂY LÀ ĐIỂM QUAN TRỌNG NHẤT ĐÃ ĐƯỢC SỬA LẠI
             view: 'emails.guest_ticket',
         );
     }

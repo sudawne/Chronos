@@ -9,7 +9,6 @@ class Guest extends Model
 {
     use HasFactory;
 
-    // Khai báo tất cả các cột được phép thêm dữ liệu
     protected $fillable = [
         'meeting_id', 
         'full_name', 

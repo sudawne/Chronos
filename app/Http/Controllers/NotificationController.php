@@ -44,13 +44,11 @@ class NotificationController extends Controller
             /** @var \App\Models\User $user */
             $user = Auth::user();
             
-            // Tìm thông báo theo ID của user hiện tại
             $notification = $user->notifications()->find($id);
             
             if ($notification) {
-                $notification->markAsRead(); // Đánh dấu đã đọc
+                $notification->markAsRead(); 
                 
-                // Chuyển hướng đến link đích (nếu không có thì về trang chủ)
                 return redirect($notification->data['link'] ?? '/');
             }
         }

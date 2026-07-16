@@ -33,11 +33,9 @@ class AppServiceProvider extends ServiceProvider
         //     URL::forceScheme('https');
         // }
         if (str_contains(config('app.url'), 'https://')) {
-            // 1. Ép tạo link HTTPS
             URL::forceScheme('https');
             URL::forceRootUrl(config('app.url'));
             
-            // 2. Ép Request khi nhận vào luôn hiểu là HTTPS và đúng Tên miền
             request()->server->set('HTTPS', 'on');
             request()->headers->set('HOST', parse_url(config('app.url'), PHP_URL_HOST));
         }

@@ -9,20 +9,16 @@ use Illuminate\Support\Facades\Auth;
 
 class GoogleController extends Controller
 {
-    // Chuyển hướng người dùng sang trang đăng nhập của Google
     public function redirectToGoogle()
     {
         return Socialite::driver('google')->redirect();
     }
 
-    // Xử lý dữ liệu Google trả về
     public function handleGoogleCallback()
     {
         try {
-            // Lấy thông tin từ Google
             $googleUser = Socialite::driver('google')->user();
 
-            // Tìm hoặc tạo mới User
             $user = User::updateOrCreate(
                 ['email' => $googleUser->email],
                 [

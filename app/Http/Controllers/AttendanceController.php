@@ -12,11 +12,8 @@ class CheckInController extends Controller
 {
     public function submitCheckIn(Request $request)
     {
-        // 1. Nhận dữ liệu từ Python gửi sang
         $eventId = $request->input('event_id');
         $guestId = $request->input('guest_id');
-
-        // 2. Kiểm tra xem sự kiện và khách mời có tồn tại không
         $event = Event::find($eventId);
         $guest = Guest::find($guestId);
 
@@ -27,7 +24,6 @@ class CheckInController extends Controller
             ], 404);
         }
 
-        // 3. (Tùy chọn) Kiểm tra xem khách này đã điểm danh chưa để tránh spam
         $alreadyCheckedIn = Attendance::where('event_id', $eventId)
                                       ->where('guest_id', $guestId)
                                       ->first();
@@ -39,14 +35,12 @@ class CheckInController extends Controller
             ], 200);
         }
 
-        // 4. Ghi nhận vào sổ điểm danh (Database)
         Attendance::create([
             'event_id' => $eventId,
             'guest_id' => $guestId,
-            'check_in_time' => Carbon::now(), // Lấy giờ hiện tại
+            'check_in_time' => Carbon::now(),
         ]);
 
-        // 5. Trả lời lại cho Python biết là thành công
         return response()->json([
             'status' => 'success',
             'message' => 'Xin chào ' . $guest->name . ', check-in thành công!',

@@ -45,7 +45,7 @@ class RequestPhotoMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.request_photo', // Trỏ đúng vào file giao diện của bạn
+            view: 'emails.request_photo', 
         );
     }
 

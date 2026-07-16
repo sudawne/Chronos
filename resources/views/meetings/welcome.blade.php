@@ -196,7 +196,6 @@
     formData.append('meeting_id', {{ $meeting->id }});
 
     try {
-        // 1. Gọi AI nhận diện (HTTPS)
         const res = await fetch('https://ai.chronos.io.vn/nhan_dien', {
             method: 'POST',
             body: formData
@@ -212,7 +211,7 @@
                 } else {
                     hideBlinkPrompt();
                     
-                    // HIỂN THỊ LỜI CHÀO NGAY (Cái cũ bạn làm rất tốt)
+                    // HIỂN THỊ LỜI CHÀO
                     triggerWelcome({
                         name: person.name,
                         position: person.position || '',
@@ -220,8 +219,6 @@
                         image_url: person.image_url || '/images/default-avatar.png'
                     });
 
-                    // 2. GỬI ĐIỂM DANH BACKGROUND (Không chặn hiển thị)
-                    // Thêm 'Accept': 'application/json' để Laravel hiểu đây là request API
                     fetch(`/api/meetings/{{ $meeting->id }}/checkin`, {
                         method: 'POST',
                         headers: {

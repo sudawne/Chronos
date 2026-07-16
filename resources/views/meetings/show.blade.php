@@ -6,8 +6,6 @@
 
 @section('content')
 <div class="px-4 lg:px-8 pb-12 bg-slate-50/50 min-h-screen relative">
-    
-    {{-- Header Section --}}
     <div class="mb-8">
         <a href="{{ route('meetings.index') }}" 
            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all duration-300 mb-6 group">
@@ -16,7 +14,6 @@
         </a>
 
         <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-            {{-- Title Area --}}
             <div class="flex-1">
                 <div class="flex items-center gap-3 mb-2">
                     <div class="w-2 h-8 bg-indigo-600 rounded-full"></div>
@@ -25,10 +22,10 @@
                 <p class="text-slate-500 text-base ml-5">Quản lý thông tin chi tiết và danh sách thành viên đăng ký khuôn mặt</p>
             </div>
             
-            {{-- THANH CÔNG CỤ (ACTION BAR) --}}
+            {{-- THANH CÔNG CỤ --}}
             <div class="flex flex-col gap-3 shrink-0 lg:items-end w-full lg:w-auto mt-2 lg:mt-0">
                 
-                {{-- Nhóm 1: Hệ thống Điểm danh (Webcam & QR) --}}
+                {{-- Nhóm 1: Hệ thống Điểm danh  --}}
                 <div class="flex flex-wrap items-center p-1.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm gap-1 w-full lg:w-auto">
                     <div class="px-3 flex items-center gap-2 border-r border-slate-100 hidden sm:flex">
                         <span class="relative flex h-2.5 w-2.5">
@@ -143,7 +140,6 @@
             </div>
         </div>
 
-        {{-- Time Card --}}
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 hover:shadow-md transition-shadow duration-300 flex items-start gap-5 relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform duration-500"></div>
             <div class="w-14 h-14 rounded-2xl bg-blue-100/80 flex items-center justify-center shrink-0 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
@@ -163,8 +159,6 @@
                 </div>
             </div>
         </div>
-
-        {{-- Config Card --}}
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 hover:shadow-md transition-shadow duration-300 flex items-start gap-5 relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform duration-500"></div>
             <div class="w-14 h-14 rounded-2xl bg-emerald-100/80 flex items-center justify-center shrink-0 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300">
@@ -197,9 +191,9 @@
         </div>
     </div>
 
-    {{-- THỐNG KÊ REALTIME SECTION (MỚI THÊM) --}}
+    {{-- THỐNG KÊ REALTIME SECTION --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {{-- Cột 1: Chỉ số tổng quan (Tỷ lệ & Số lượng) --}}
+        {{-- Cột 1: Chỉ số tổng quan --}}
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col justify-center relative overflow-hidden">
             <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full opacity-50 blur-2xl"></div>
             
@@ -220,8 +214,7 @@
                 <span class="text-slate-600">Tỷ lệ tham dự</span>
                 <span class="text-emerald-600 text-lg" id="rt-percentage">0%</span>
             </div>
-            
-            {{-- Thanh Progress Bar --}}
+
             <div class="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden shadow-inner">
                 <div id="rt-progress-bar" class="bg-gradient-to-r from-emerald-400 to-emerald-600 h-3 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
             </div>
@@ -242,11 +235,8 @@
             </div>
         </div>
     </div>
-    {{-- KẾT THÚC KHU VỰC THỐNG KÊ --}}
 
-    {{-- Guest List Section --}}
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-        {{-- Table Header --}}
         <div class="p-6 border-b border-slate-200 bg-slate-50/50 flex flex-col xl:flex-row xl:justify-between xl:items-center gap-4">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-indigo-100 rounded-lg text-indigo-600">
@@ -286,7 +276,6 @@
             </div>
         </div>
         
-        {{-- Table --}}
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -343,7 +332,6 @@
                                 </div>
                             </td>
                             
-                            {{-- CỘT DỮ LIỆU AI --}}
                             <td class="px-6 py-4">
                                 @if($guest->face_vector)
                                     <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-xs font-medium">
@@ -416,7 +404,6 @@
             </table>
         </div>
         
-        {{-- Pagination/Footer --}}
         @if($meeting->guests->count() > 0)
         <div class="p-4 sm:p-6 bg-slate-50 flex flex-col sm:flex-row items-center justify-between border-t border-slate-200 gap-4">
             <p class="text-sm text-slate-500">
@@ -437,7 +424,7 @@
     </div>
 </div>
 
-{{-- MODAL CHỌN CỔNG PHỤ AI (Đã sửa z-index) --}}
+{{-- MODAL CHỌN CỔNG PHỤ AI  --}}
 <div id="gate-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center">
     <div id="gate-modal-box" class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl transform scale-95 transition-all duration-300 relative border border-slate-100">
         <button onclick="closeGateModal()" class="absolute top-6 right-6 text-slate-400 hover:text-rose-500 transition-colors w-8 h-8 rounded-full flex items-center justify-center bg-slate-50 hover:bg-rose-50">
@@ -459,7 +446,7 @@
     </div>
 </div>
 
-{{-- MODAL CẬP NHẬT ẢNH KHUÔN MẶT (Đã sửa z-index) --}}
+{{-- MODAL CẬP NHẬT ẢNH KHUÔN MẶT  --}}
 <div id="face-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden items-center justify-center opacity-0 transition-opacity duration-300">
     <div id="face-modal-box" class="bg-white rounded-3xl w-full max-w-lg mx-4 shadow-2xl transform scale-95 transition-all duration-300 overflow-hidden relative border border-slate-100">
         
@@ -504,7 +491,7 @@
     </div>
 </div>
 
-{{-- MODAL THÊM ĐẠI BIỂU MỚI (Đã sửa z-index) --}}
+{{-- MODAL THÊM ĐẠI BIỂU MỚI --}}
 <div id="add-guest-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden items-center justify-center opacity-0 transition-opacity duration-300 overflow-y-auto">
     <div id="add-guest-modal-box" class="bg-white rounded-3xl w-full max-w-2xl mx-4 my-8 shadow-2xl transform scale-95 transition-all duration-300 relative border border-slate-100">
         
@@ -657,7 +644,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // ==========================================
-    // LOGIC CHO MODAL CỔNG PHỤ (GATE SELECTION)
+    // LOGIC CHO MODAL CỔNG PHỤ 
     // ==========================================
     let checkGateInterval;
     window.currentMeetingId = {{ $meeting->id }};
@@ -725,7 +712,6 @@
         if(name) {
             window.open(`/meetings/${window.currentMeetingId}/online?gate=${encodeURIComponent(name)}`, '_blank');
         } else {
-            // Thay thế alert("Vui lòng nhập tên cổng!"); bằng:
             Swal.fire({
                 icon: 'info',
                 title: 'Thiếu thông tin',
@@ -740,7 +726,6 @@
     // LOGIC CHO CÁC MODAL KHÁC
     // ==========================================
 
-    // Cập nhật tham số nhận thêm avatarUrl
     function openEditGuestModal(guestId, fullName, email, position, seatLocation, avatarUrl) {
         const backdrop = document.getElementById('edit-guest-modal-backdrop');
         const box = document.getElementById('edit-guest-modal-box');
@@ -752,11 +737,8 @@
         document.getElementById('edit_email').value = email;
         document.getElementById('edit_position').value = position;
         document.getElementById('edit_seat_location').value = seatLocation;
-
-        // Reset ô upload file ẩn
         document.getElementById('edit_file_anh').value = '';
         
-        // Gắn ảnh hiện tại vào khu vực Preview bên phải
         const preview = document.getElementById('edit-guest-preview');
         preview.src = avatarUrl;
 
@@ -963,8 +945,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         initTrafficChart();
         fetchRealtimeStats(); 
-        
-        // Cập nhật tự động mỗi 3 giây
         realtimeInterval = setInterval(fetchRealtimeStats, 3000); 
     });
 
@@ -974,12 +954,10 @@
     function printGuestList() {
         const printWindow = window.open('', '_blank');
         
-        // Lấy thông tin cuộc họp
         const meetingTitle = `{{ $meeting->title }}`;
         const meetingTime = `{{ \Carbon\Carbon::parse($meeting->start_time)->format('H:i d/m/Y') }} - {{ \Carbon\Carbon::parse($meeting->end_time)->format('H:i d/m/Y') }}`;
         const meetingLocation = `{{ $meeting->location }}`;
 
-        // Tạo nội dung bảng
         let tableHtml = `
             <table class="table-print">
                 <thead>
@@ -995,7 +973,6 @@
                 <tbody>
         `;
 
-        // Render dữ liệu bằng Blade
         @foreach($meeting->guests as $index => $guest)
             tableHtml += `
                 <tr>
@@ -1011,7 +988,6 @@
 
         tableHtml += `</tbody></table>`;
 
-        // Đổ mã HTML vào trang in
         printWindow.document.write(`
             <html>
             <head>
@@ -1063,15 +1039,13 @@
         printWindow.document.close();
         printWindow.focus();
         
-        // Đợi HTML render xong 0.5s thì gọi hộp thoại in
         setTimeout(() => {
             printWindow.print();
-            // printWindow.close(); // Mở dòng này nếu muốn in xong tự tắt tab
         }, 500);
     }
 
     function confirmAction(event, title, text) {
-        event.preventDefault(); // Chặn hành động mặc định
+        event.preventDefault();
         const form = event.target; 
 
         Swal.fire({
@@ -1079,13 +1053,13 @@
             text: text,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#5949be', // Màu chuẩn của CHRONOS AI
+            confirmButtonColor: '#5949be',
             cancelButtonColor: '#94a3b8',
             confirmButtonText: 'Xác nhận xóa',
             cancelButtonText: 'Hủy'
         }).then((result) => {
             if (result.isConfirmed) {
-                form.submit(); // Chỉ submit khi người dùng đồng ý
+                form.submit(); 
             }
         });
     }

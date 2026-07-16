@@ -159,20 +159,17 @@
             if (card.showTimeout) clearTimeout(card.showTimeout);
 
             if (filterValue === 'all' || card.getAttribute('data-status') === filterValue) {
-                // Hiển thị lại card
                 card.style.display = 'flex';
-                // Delay 20ms để CSS nhận dạng display:flex trước khi kích hoạt hiệu ứng mờ
                 card.showTimeout = setTimeout(() => { 
                     card.style.opacity = '1'; 
                     card.style.transform = 'scale(1)'; 
                 }, 20);
             } else {
-                // Ẩn card đi
                 card.style.opacity = '0';
                 card.style.transform = 'scale(0.95)';
                 card.hideTimeout = setTimeout(() => { 
                     card.style.display = 'none'; 
-                }, 300); // 300ms bằng thời gian transition CSS
+                }, 300);
             }
         });
     }
@@ -181,33 +178,27 @@
         const btns = document.querySelectorAll('.filter-btn');
         
         btns.forEach(btn => {
-            // Xóa bỏ tất cả event listener cũ (Chống kẹt khi trang load lại cục bộ)
             const newBtn = btn.cloneNode(true);
             btn.parentNode.replaceChild(newBtn, btn);
         });
 
-        // Gắn lại sự kiện click cho các nút mới
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
-                e.preventDefault(); // Ngăn hành vi nhảy trang mặc định
-                
-                // 1. Reset CSS màu sắc của TẤT CẢ các nút về màu xám
+                e.preventDefault(); 
                 document.querySelectorAll('.filter-btn').forEach(b => {
                     b.classList.remove('bg-[#5949be]', 'text-white', 'shadow-md', 'active');
                     b.classList.add('bg-white', 'text-gray-600');
                 });
                 
-                // 2. Tô màu nút vừa được bấm
                 this.classList.remove('bg-white', 'text-gray-600');
                 this.classList.add('bg-[#5949be]', 'text-white', 'shadow-md', 'active');
 
-                // 3. Thực thi logic ẩn/hiện sự kiện
                 applyFilter(this.getAttribute('data-filter'));
             });
         });
     }
 
-    // 2. Logic Cập nhật thời gian thực (Real-time Updater)
+    // 2. Logic Cập nhật thời gian thực
     function startRealTimeUpdates() {
         if (window.meetingStatusInterval) clearInterval(window.meetingStatusInterval);
 
@@ -230,7 +221,6 @@
                     newStatus = 'ended';
                 }
 
-                // Nếu thời gian thay đổi làm đổi trạng thái
                 if (currentStatus !== newStatus) {
                     hasChanges = true;
                     card.setAttribute('data-status', newStatus);
@@ -238,14 +228,11 @@
                 }
             });
 
-            // Nếu trạng thái đổi, áp dụng lại đúng cái bộ lọc đang bấm
             if (hasChanges) {
                 const activeFilterBtn = document.querySelector('.filter-btn.active');
                 if (activeFilterBtn) applyFilter(activeFilterBtn.getAttribute('data-filter'));
             }
         }
-
-        // Cập nhật ngầm mỗi 10 giây
         window.meetingStatusInterval = setInterval(updateStatuses, 10000);
     }
 
@@ -278,20 +265,17 @@
         }
     }
 
-    // Bọc hàm khởi tạo để gọi mọi lúc
     function initAll() {
         initFilters();
         startRealTimeUpdates();
     }
 
-    // Kiểm tra DOM xem đã render xong chưa (Tránh lỗi script chạy quá sớm hoặc quá trễ)
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAll);
     } else {
         initAll();
     }
 
-    // Hỗ trợ thư viện Swup (nếu có dùng để chuyển trang mượt)
     if (typeof swup !== 'undefined') {
         swup.hooks.on('page:view', initAll);
     }

@@ -17,13 +17,11 @@ class SystemAlert extends Notification
 
     public function via($notifiable)
     {
-        // Khai báo lưu vào database
         return ['database']; 
     }
 
     public function toArray($notifiable)
     {
-        // Cấu trúc dữ liệu sẽ được lưu
         return [
             'title'      => $this->data['title'],
             'message'    => $this->data['message'],
